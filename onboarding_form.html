@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DigiDr - Onboarding Form</title>
+  <!-- Google Fonts & FontAwesome / Intl-Tel-Input -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+  <link rel="stylesheet" href="onboarding_form.css">
+</head>
+
+<body>
+
+  <section class="hero-section">
+    <!-- Dynamic Aurora Background -->
+    <div class="hero-aurora" aria-hidden="true">
+      <div class="hero-aurora__mesh">
+        <div class="hero-aurora__blob hero-aurora__blob--blue">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+        <div class="hero-aurora__blob hero-aurora__blob--orange">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+
+      <!-- Top Center DigiDr Logo & Tagline Header -->
+      <div class="header-logo-container">
+        <a href="https://digidr.app" target="_blank" title="DigiDr Homepage">
+          <img src="https://storage.googleapis.com/digidr/logo.png" alt="DigiDr Logo" class="logo-img">
+        </a>
+        <div class="tagline-badge">
+          <span class="tagline-text">AI Digital Infrastructure for Doctors</span>
+        </div>
+      </div>
+
+      <!-- Onboarding Form Card -->
+      <div class="form-card">
+
+        <div id="onboardingFormContent">
+          <div class="form-title-group">
+            <h2 class="form-title">Welcome to DigiDr</h2>
+            <p class="form-subtitle">Your permanent digital identity as a doctor: live before your next patient
+              walks in.</p>
+          </div>
+
+          <form id="onboardingForm" onsubmit="handleOnboardingSubmit(event)" novalidate>
+
+            <!-- ============= PERSONAL DETAILS ============= -->
+            <div class="section-block">
+              <div class="section-title-row">
+                <div class="section-title"><i class="fa-solid fa-id-card"></i> Personal Details</div>
+              </div>
+              <hr class="section-divider">
+
+              <!-- Profile Photo Upload -->
+              <div class="photo-upload-row">
+                <label class="avatar-upload" for="profilePhotoInput" title="Upload profile photo">
+                  <div class="avatar-circle" id="avatarPreview"><i class="fa-solid fa-user"></i></div>
+                  <span class="avatar-camera-btn" aria-hidden="true">
+                    <i class="fa-solid fa-camera"></i>
+                  </span>
+                  <input type="file" id="profilePhotoInput" accept="image/png, image/jpeg" hidden>
+                </label>
+                <div class="photo-upload-text">
+                  <p class="photo-upload-title">Upload Profile Photo</p>
+                  <p class="photo-upload-desc">A clear headshot builds patient trust.<br>JPG or PNG, min
+                    400&times;400px.</p>
+                  <p class="photo-upload-desc field-error-msg" id="photoError" style="display:none;"></p>
+                </div>
+              </div>
+
+              <div class="form-row form-row-3">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="salutation" class="form-input has-icon readonly-field" value="Doctor" readonly>
+                    <i class="fa-solid fa-user-doctor field-icon"></i>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="firstName" class="form-input has-icon" placeholder="First Name">
+                    <i class="fa-solid fa-user field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">First name is required.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="email" id="email" class="form-input has-icon" placeholder="Email Address">
+                    <i class="fa-solid fa-envelope field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Enter a valid email address.</span>
+                </div>
+              </div>
+
+              <div class="form-row form-row-3">
+                <div class="form-group">
+                  <input type="tel" id="phone" class="form-input" placeholder="Phone Number">
+                  <span class="field-error-msg">Phone number is required.</span>
+                </div>
+
+                <div class="form-group">
+                  <input type="hidden" id="gender">
+                  <div class="custom-select-trigger" id="genderTrigger" onclick="openDropdownModal('gender')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-venus-mars field-icon-inline"></i>
+                      <span class="placeholder-text" id="genderText">Select Gender</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <span class="field-error-msg">This field is required.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="mciRegdNo" class="form-input has-icon"
+                      placeholder="MCI Regd. No (for microsite)">
+                    <i class="fa-solid fa-hashtag field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Registration number is required.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============= MEDICAL CREDENTIALS ============= -->
+            <div class="section-block">
+              <div class="section-title-row">
+                <div class="section-title"><i class="fa-solid fa-heart-pulse"></i> Medical Credentials</div>
+              </div>
+              <hr class="section-divider">
+
+              <div class="form-row form-row-3">
+                <div class="form-group">
+                  <input type="hidden" id="medicalSpecialty">
+                  <div class="custom-select-trigger" id="medicalSpecialtyTrigger" onclick="openDropdownModal('medicalSpecialty')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-bookmark field-icon-inline"></i>
+                      <span class="placeholder-text" id="medicalSpecialtyText">Medical Specialty</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <span class="field-error-msg">This field is required.</span>
+                  <div class="other-field-group" id="otherMedicalSpecialtyGroup">
+                    <input type="text" id="otherMedicalSpecialty" class="form-input"
+                      placeholder="Please specify your speciality">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <input type="hidden" id="medicalSubSpecialty">
+                  <div class="custom-select-trigger" id="medicalSubSpecialtyTrigger" onclick="openDropdownModal('medicalSubSpecialty')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-bookmark field-icon-inline"></i>
+                      <span class="placeholder-text" id="medicalSubSpecialtyText">Medical Sub-specialty</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <input type="hidden" id="yearsExperience">
+                  <div class="custom-select-trigger" id="yearsExperienceTrigger" onclick="openDropdownModal('yearsExperience')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-briefcase field-icon-inline"></i>
+                      <span class="placeholder-text" id="yearsExperienceText">Years Of Experience</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <span class="field-error-msg">This field is required.</span>
+                </div>
+              </div>
+
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <input type="hidden" id="qualifications">
+                  <div class="custom-select-trigger multi" id="qualificationsTrigger"
+                    onclick="openDropdownModal('qualifications')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-graduation-cap field-icon-inline"></i>
+                      <span class="placeholder-text" id="qualificationsText">Qualifications</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <span class="field-error-msg">Qualifications are required.</span>
+                </div>
+
+                <div class="form-group">
+                  <input type="hidden" id="medicalInstitute">
+                  <div class="custom-select-trigger" id="medicalInstituteTrigger" onclick="openDropdownModal('medicalInstitute')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-building-columns field-icon-inline"></i>
+                      <span class="placeholder-text" id="medicalInstituteText">Medical Institute</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <div class="other-field-group" id="otherMedicalInstituteGroup">
+                    <input type="text" id="otherMedicalInstitute" class="form-input"
+                      placeholder="Please specify your medical institute">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============= CLINIC DETAILS ============= -->
+            <div class="section-block">
+              <div class="section-title-row">
+                <div class="section-title"><i class="fa-solid fa-hospital"></i> Clinic Details</div>
+              </div>
+              <hr class="section-divider">
+
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="clinicName" class="form-input has-icon"
+                      placeholder="Clinic/Hospital Name">
+                    <i class="fa-solid fa-hospital field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Clinic / hospital name is required.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="clinicAddress" class="form-input has-icon"
+                      placeholder="Clinic Address (Street)">
+                    <i class="fa-solid fa-location-dot field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Clinic address is required.</span>
+                </div>
+              </div>
+
+              <div class="form-row form-row-3">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="pincode" class="form-input has-icon" placeholder="Pincode" inputmode="numeric" maxlength="6">
+                    <i class="fa-solid fa-map-pin field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Enter a valid 6-digit pincode.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="districtCity" class="form-input has-icon" placeholder="District / City">
+                    <i class="fa-solid fa-city field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">District / City is required.</span>
+                </div>
+
+                <div class="form-group">
+                  <input type="hidden" id="state">
+                  <div class="custom-select-trigger" id="stateTrigger" onclick="openDropdownModal('state')">
+                    <span class="trigger-content">
+                      <i class="fa-solid fa-map-location-dot field-icon-inline"></i>
+                      <span class="placeholder-text" id="stateText">Select State</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                  </div>
+                  <span class="field-error-msg">This field is required.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============= ABOUT SECTION ============= -->
+            <div class="section-block">
+              <div class="section-title-row">
+                <div class="section-title"><i class="fa-solid fa-user-pen"></i> About Section</div>
+                <button type="button" class="section-edit-btn" id="aboutEditBtn" onclick="enterAboutEditMode()" title="Edit your bio">
+                  <i class="fa-solid fa-pencil"></i>
+                  <span>Edit</span>
+                </button>
+                <div class="about-action-btns" id="aboutActionBtns" style="display: none; gap: 8px;">
+                  <button type="button" class="about-btn about-cancel-btn" onclick="cancelAboutEdit()">Cancel</button>
+                  <button type="button" class="about-btn about-save-btn" onclick="saveAboutEdit()">Save</button>
+                </div>
+              </div>
+              <hr class="section-divider">
+
+              <div class="form-group">
+                <textarea id="aboutSection" class="form-textarea" rows="6"
+                  placeholder="Share a short bio patients will see on your DigiDr microsite..." readonly></textarea>
+                <span class="field-error-msg">Tell us a bit more (min. 20 characters).</span>
+              </div>
+            </div>
+
+            <!-- ============= INFO BOX ============= -->
+            <div class="info-box">
+              <div class="info-box-title">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>What DigiDr builds for you after the moment you register</span>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-item-icon"><i class="fa-solid fa-circle-check"></i></div>
+                  <div>
+                    <div class="info-item-title">Verified Doctor Profile</div>
+                    <div class="info-item-desc">Permanent, SEO-structured, indexed by Google</div>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-icon"><i class="fa-solid fa-globe"></i></div>
+                  <div>
+                    <div class="info-item-title">Smart Microsite</div>
+                    <div class="info-item-desc">digidr.app/yourname &mdash; live in minutes</div>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-icon"><i class="fa-solid fa-photo-film"></i></div>
+                  <div>
+                    <div class="info-item-title">AI Content Layer</div>
+                    <div class="info-item-desc">Speciality posts, reels, and emailers &mdash; published as you</div>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <div class="info-item-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                  <div>
+                    <div class="info-item-title">Appointment Infrastructure</div>
+                    <div class="info-item-desc">Booking, payments, and reminders &mdash; ready to go</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Terms Checkbox -->
+            <div class="checkbox-group">
+              <input type="checkbox" id="agreeTerms">
+              <label class="checkbox-label" for="agreeTerms">
+                I agree to the <a href="#" target="_blank">Terms of Service</a> and
+                <a href="#" target="_blank">Privacy Policy</a>
+              </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" class="submit-btn" disabled>
+              <span>Start free trial</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Success Message Container -->
+        <div id="onboardingSuccessContent" class="success-container">
+          <div class="success-icon">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h3 class="success-title">Your Registration is Successful!</h3>
+          <p class="success-desc">Thank you for registering with DigiDr. Your registration has been successfully
+            completed, and we have received profile details.</p>
+          <p class="success-desc success-desc-followup"><strong>Keep an eye on your registered email address</strong>
+            for your DigiDr login link and the next steps.</p>
+          <a href="https://digidr.app" class="visit-btn">
+            <span>Meanwhile, explore DigiDr.</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Shared Dropdown Selection Modal -->
+  <div class="select-modal-backdrop" id="selectModalBackdrop" onclick="handleModalBackdropClick(event)">
+    <div class="select-modal-card">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid" id="modalIcon" style="color:#0360D9;"></i>
+          <span id="modalTitleText">Select an option</span>
+        </div>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" onclick="closeDropdownModal()" aria-label="Close">
+          <i class="fa-solid fa-xmark" id="modalCloseIcon"></i>
+          <span class="modal-done-label" id="modalDoneLabel">Done</span>
+        </button>
+      </div>
+
+      <!-- Modal Search Bar (doubles as the add field for custom entries) -->
+      <div class="modal-search-box" id="modalSearchBox">
+        <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
+        <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
+          oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
+      </div>
+
+      <!-- Selected Chips (multi-select only) -->
+      <div class="modal-chips-row" id="modalChipsRow"></div>
+
+      <!-- Options List -->
+      <ul class="modal-options-list" id="modalOptionsList"></ul>
+    </div>
+  </div>
+
+  <!-- International Phone Input JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+  <script src="onboarding_form.js"></script>
+</body>
+
+</html>
