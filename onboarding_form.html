@@ -335,8 +335,8 @@
             <div class="checkbox-group">
               <input type="checkbox" id="agreeTerms">
               <label class="checkbox-label" for="agreeTerms">
-                I agree to the <a href="#" target="_blank">Terms of Service</a> and
-                <a href="#" target="_blank">Privacy Policy</a>
+                I agree to the <a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a> and
+                <a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a>
               </label>
             </div>
 
@@ -395,6 +395,27 @@
 
       <!-- Options List -->
       <ul class="modal-options-list" id="modalOptionsList"></ul>
+    </div>
+  </div>
+
+  <!-- Legal Content Modal (Terms of Service / Privacy Policy) -->
+  <div class="legal-modal-backdrop" id="legalModalBackdrop" onclick="handleLegalModalBackdropClick(event)">
+    <div class="legal-modal-card">
+
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-file-shield" id="legalModalIcon" style="color:#0360D9;"></i>
+          <span id="legalModalTitleText">Terms of Service</span>
+        </div>
+      </div>
+
+      <div class="legal-modal-body" id="legalModalBody">
+        <p class="legal-updated" id="legalModalUpdated">Last updated on 20th May 2026</p>
+      </div>
+
+      <div class="legal-modal-footer">
+        <button type="button" class="legal-accept-btn" onclick="closeLegalModal()">Got it</button>
+      </div>
     </div>
   </div>
 

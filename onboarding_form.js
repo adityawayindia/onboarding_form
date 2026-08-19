@@ -77,7 +77,10 @@ document.addEventListener('DOMContentLoaded', function () {
      Escape key closes the dropdown modal
      ------------------------------------------------------- */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeDropdownModal();
+    if (e.key === 'Escape') {
+      closeDropdownModal();
+      closeLegalModal();
+    }
   });
 
   /* -------------------------------------------------------
@@ -1152,4 +1155,117 @@ function saveAboutEdit() {
   actionBtns.style.display = 'none';
   validateField('aboutSection');
   persistDraft();
+}
+
+/* =========================================================
+   Legal Content Modal (Terms of Service / Privacy Policy)
+   ========================================================= */
+const LEGAL_CONTENT = {
+  terms: {
+    icon: 'fa-file-shield',
+    title: 'Terms of Service',
+    updated: 'Last updated on 20th May 2026',
+    html: `
+      <p>Welcome to DigiDr, a subscription-based platform enabling doctors and small healthcare providers to build and manage their digital presence. By using DigiDr, you agree to these Terms of Service.</p>
+
+      <h4>1. Eligibility</h4>
+      <p>DigiDr is available only to licensed medical professionals, healthcare practitioners, and registered healthcare organisations.</p>
+      <p>You are responsible for providing accurate, complete, and current registration information.</p>
+
+      <h4>2. Services Provided</h4>
+      <p>DigiDr offers tools for creating digital microsites, publishing content, managing appointments, collecting reviews, and accessing analytics.</p>
+      <p>DigiDr may update or improve services periodically.</p>
+
+      <h4>3. Account &amp; Responsibilities</h4>
+      <p>You are responsible for all activity under your account and for maintaining the confidentiality of your login credentials.</p>
+      <p>All content (text, photos, credentials) uploaded to DigiDr must be accurate, lawful, and owned or licensed by you.</p>
+
+      <h4>4. Payments &amp; Subscriptions</h4>
+      <p>Use of DigiDr is based on a subscription model with a one-time setup fee and recurring monthly/annual charges.</p>
+      <p>Fees are non-refundable except as outlined in the Cancellation Policy.</p>
+      <p>DigiDr reserves the right to change pricing with prior notice.</p>
+
+      <h4>5. Content Ownership &amp; Use</h4>
+      <p>All doctor data, content, and patient information remain your property.</p>
+      <p>By using DigiDr, you grant DigiDr a limited license to display and distribute your content only for operating the platform.</p>
+      <p>DigiDr will not sell or share your data with third parties without your consent.</p>
+
+      <h4>6. Patient Data Privacy</h4>
+      <p>Any patient-related information collected through DigiDr will be handled securely and only for the intended healthcare purpose.</p>
+      <p>You are responsible for complying with applicable healthcare privacy laws in your jurisdiction.</p>
+
+      <h4>7. Termination</h4>
+      <p>You may cancel your subscription at any time.</p>
+      <p>DigiDr may suspend or terminate accounts violating these terms, engaging in illegal activity, or misusing the platform.</p>
+
+      <h4>8. Liability &amp; Disclaimers</h4>
+      <p>DigiDr provides services as is, without warranties of any kind.</p>
+      <p>DigiDr is not liable for indirect, incidental, or consequential damages arising from platform use.</p>
+      <p>You remain solely responsible for all medical advice and services you provide to patients.</p>
+
+      <h4>9. Governing Law</h4>
+      <p>These Terms are governed by the laws of India, and any disputes shall be subject to the exclusive jurisdiction of courts in Mumbai, Maharashtra.</p>
+
+      <h4>10. Contact</h4>
+      <p>For questions about these Terms, please contact: <a href="mailto:support@digidr.in">support@digidr.in</a></p>
+      <p>By signing up, you agree to abide by these Terms of Service and all applicable laws.</p>
+    `
+  },
+  privacy: {
+    icon: 'fa-user-shield',
+    title: 'Privacy Policy',
+    updated: 'Last updated on 20th May 2026',
+    html: `
+      <p>At DigiDr, we prioritise the privacy and security of all doctors, clinics, and their patients.</p>
+
+      <h4>Data Ownership</h4>
+      <p>All data (doctor profiles, clinic details, patient information) belongs solely to the respective doctors/clinics. DigiDr commits to never selling or sharing this information.</p>
+
+      <h4>Data Usage</h4>
+      <p>Information serves only to deliver DigiDr services &mdash; including microsites and content publishing &mdash; and requires explicit user consent from account holders.</p>
+
+      <h4>Patient Data Privacy</h4>
+      <p>Patient-related information (appointments, feedback, contact details) is stored securely and is accessible only to the respective doctor/clinic.</p>
+
+      <h4>Security Measures</h4>
+      <p>All data is encrypted, stored on secure servers, and protected using industry-standard security protocols.</p>
+
+      <h4>Third-Party Sharing</h4>
+      <p>DigiDr refrains from sharing personal or clinic data with external parties without consent, except when legally mandated.</p>
+
+      <h4>Compliance</h4>
+      <p>The platform adheres to applicable data protection regulations, including India's DPDP Act and GDPR principles.</p>
+
+      <h4>Closing Statement</h4>
+      <p>Your data stays yours. DigiDr only powers your presence &mdash; never compromises your privacy.</p>
+    `
+  }
+};
+
+function openLegalModal(type) {
+  const content = LEGAL_CONTENT[type];
+  if (!content) return;
+
+  const backdrop = document.getElementById('legalModalBackdrop');
+  const icon = document.getElementById('legalModalIcon');
+  const titleText = document.getElementById('legalModalTitleText');
+  const body = document.getElementById('legalModalBody');
+
+  icon.className = 'fa-solid ' + content.icon;
+  titleText.textContent = content.title;
+  body.innerHTML = `<p class="legal-updated">${content.updated}</p>${content.html}`;
+
+  backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLegalModal() {
+  const backdrop = document.getElementById('legalModalBackdrop');
+  if (!backdrop.classList.contains('active')) return;
+  backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function handleLegalModalBackdropClick(e) {
+  if (e.target.id === 'legalModalBackdrop') closeLegalModal();
 }
