@@ -1383,8 +1383,8 @@ body {
    Checkbox / Terms
    --------------------------------------------------------- */
 @keyframes checkboxBlink {
-  0%, 50% { box-shadow: 0 0 0 2px #DC2626; }
-  100% { box-shadow: none; }
+  0%, 50% { border-color: #E11D48; }
+  100% { border-color: #CBD5E1; }
 }
 
 .checkbox-group {
@@ -1397,18 +1397,37 @@ body {
 }
 
 .checkbox-group input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 18px;
   height: 18px;
   margin-top: 2px;
+  border: 3px solid #CBD5E1;
+  border-radius: 4px;
+  background: #fff;
   accent-color: #0E65D7;
   cursor: pointer;
   flex: none;
-  animation: checkboxBlink 1s infinite;
+  animation: checkboxBlink 0.75s ease-in-out infinite;
 }
 
 .checkbox-group input[type="checkbox"]:checked {
   animation: none;
-  box-shadow: none;
+  border-color: #0E65D7;
+  background: #0E65D7;
+  position: relative;
+}
+
+.checkbox-group input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .checkbox-label {
