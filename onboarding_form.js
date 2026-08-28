@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
   /* -------------------------------------------------------
      "Other" conditional text fields — cleared/validated on toggle
      ------------------------------------------------------- */
-  ['otherMedicalSpecialty', 'otherMedicalInstitute'].forEach(id => {
+  ['otherMedicalInstitute'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       markFieldInteracted(id);
       validateField(id);
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
      ------------------------------------------------------- */
   const allFieldIds = [
     'firstName', 'email', 'gender', 'mciRegdNo',
-    'medicalSpecialty', 'otherMedicalSpecialty', 'yearsExperience',
+    'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience',
     'qualifications',
     'medicalInstitute', 'otherMedicalInstitute',
     'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state',
@@ -190,17 +190,17 @@ const DROPDOWN_CONFIG = {
       'Cardiology', 'Dermatology', 'Endocrinology', 'Gastroenterology', 'General Surgery',
       'Internal Medicine', 'Intensivist / Critical Care', 'Neurology', 'Obstetrics & Gynecology',
       'Oncology', 'Ophthalmology', 'Orthopedics', 'Pediatrics', 'Psychiatry', 'Pulmonology',
-      'Radiology', 'Urology', 'Other'
-    ],
-    otherGroupId: 'otherMedicalSpecialtyGroup',
-    otherInputId: 'otherMedicalSpecialty'
+      'Radiology', 'Urology'
+    ]
   },
   medicalSubSpecialty: {
     title: 'Select Medical Sub-specialty',
     icon: 'fa-bookmark',
+    allowCustom: true,
+    placeholder: 'Search sub-speciality',
     options: [
       'Interventional Cardiology', 'Pediatric Surgery', 'Neuro-Oncology', 'Joint Replacement',
-      'Maternal-Fetal Medicine', 'Retina & Vitreous', 'Other'
+      'Maternal-Fetal Medicine', 'Retina & Vitreous'
     ]
   },
   yearsExperience: {
@@ -289,7 +289,6 @@ function collectDraft() {
     gender: document.getElementById('gender').value,
     mciRegdNo: document.getElementById('mciRegdNo').value,
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
-    otherMedicalSpecialty: document.getElementById('otherMedicalSpecialty').value,
     medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
@@ -430,9 +429,6 @@ function restoreOnboardingDraft() {
       ['gender', 'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience', 'medicalInstitute', 'state']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
 
-      if (draft.medicalSpecialty === 'Other' && typeof draft.otherMedicalSpecialty === 'string') {
-        document.getElementById('otherMedicalSpecialty').value = draft.otherMedicalSpecialty;
-      }
       if (draft.medicalInstitute === 'Other' && typeof draft.otherMedicalInstitute === 'string') {
         document.getElementById('otherMedicalInstitute').value = draft.otherMedicalInstitute;
       }
@@ -756,9 +752,10 @@ function renderStaticAddRow(list, config) {
 
   const label = document.createElement('span');
   label.className = 'static-other-label';
+  const separator = currentDropdownField === 'medicalSubSpecialty' ? '<br>' : ' ';
   label.innerHTML = '<i class="fa-solid fa-circle-plus"></i> Add other '
     + config.title.replace(/^Select /i, '').toLowerCase()
-    + ' (if not present in the list)';
+    + separator + '(if not present in the list)';
   li.appendChild(label);
 
   li.addEventListener('click', () => {
@@ -779,7 +776,7 @@ function renderCustomAddForm(list, config) {
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'custom-add-input';
-  input.placeholder = 'Type qualification...';
+  input.placeholder = 'Type ' + config.title.replace(/^Select /i, '').replace(/^Medical /i, '').toLowerCase() + '...';
   input.autocomplete = 'off';
   input.addEventListener('input', function () {
     this.value = this.value.replace(/[0-9]/g, '');
@@ -824,10 +821,31 @@ function saveCustomQualification(inputEl) {
   const typed = inputEl.value.trim();
   if (!typed) return;
 
+  // Single-select fields take exactly one custom value and close immediately
+  if (!config.multi) {
+    const value = canonicalize(currentDropdownField, typed.replace(/\s+/g, ' '));
+    applySingleCustomValue(currentDropdownField, value);
+    customAddRowOpen = false;
+    closeDropdownModal();
+    return;
+  }
+
   commitCustomEntries(currentDropdownField, typed);
   customAddRowOpen = false;
   renderModalChips();
   renderModalOptions(config, document.getElementById('modalSearchInput').value);
+}
+
+/* Commits a typed-in value for a single-select field (not in the options list) */
+function applySingleCustomValue(fieldId, value) {
+  const hiddenInput = document.getElementById(fieldId);
+  const textEl = document.getElementById(fieldId + 'Text');
+  if (!hiddenInput || !textEl || !value) return;
+
+  hiddenInput.value = value;
+  textEl.textContent = value;
+  textEl.classList.remove('placeholder-text');
+  textEl.classList.add('selected-text');
 }
 
 function resetSearchBarMode() {
@@ -856,8 +874,14 @@ function renderModalOptions(config, filterText) {
     }
   }
 
-  const filtered = config.options
-    .map(normalizeOption)
+  let optionList = config.options.map(normalizeOption);
+
+  if (!isMulti && config.allowCustom && currentValue) {
+    const isKnown = optionList.some(opt => dedupeKey(opt.value) === dedupeKey(currentValue));
+    if (!isKnown) optionList = [{ value: currentValue, label: currentValue }].concat(optionList);
+  }
+
+  const filtered = optionList
     .filter(opt => {
       const label = opt.label.toLowerCase();
       if (label.includes(filter)) return true;
@@ -954,12 +978,6 @@ function getFieldError(id) {
       if (value.length < 3) return 'Enter a valid registration number.';
       break;
 
-    case 'otherMedicalSpecialty':
-      if (document.getElementById('medicalSpecialty').value === 'Other' && !value) {
-        return 'Please specify your speciality.';
-      }
-      break;
-
     case 'otherMedicalInstitute':
       if (document.getElementById('medicalInstitute').value === 'Other' && !value) {
         return 'Please specify your medical institute.';
@@ -1040,9 +1058,6 @@ function validateForm() {
     if (getFieldError(id)) isValid = false;
   });
 
-  const specialtySelect = document.getElementById('medicalSpecialty');
-  if (specialtySelect.value === 'Other' && getFieldError('otherMedicalSpecialty')) isValid = false;
-
   const instituteSelect = document.getElementById('medicalInstitute');
   if (instituteSelect.value === 'Other' && getFieldError('otherMedicalInstitute')) isValid = false;
 
@@ -1063,7 +1078,7 @@ function handleOnboardingSubmit(event) {
   event.preventDefault();
 
   // Force-validate every field to surface any hidden errors
-  const idsToCheck = REQUIRED_FIELDS.concat(['otherMedicalSpecialty', 'otherMedicalInstitute', 'aboutSection']);
+  const idsToCheck = REQUIRED_FIELDS.concat(['otherMedicalInstitute', 'aboutSection']);
   let firstInvalid = null;
   idsToCheck.forEach(id => {
     markFieldInteracted(id);
@@ -1083,9 +1098,7 @@ function handleOnboardingSubmit(event) {
     phone: phoneInput.getNumber(),
     gender: document.getElementById('gender').value,
     mciRegdNo: document.getElementById('mciRegdNo').value.trim(),
-    medicalSpecialty: document.getElementById('medicalSpecialty').value === 'Other'
-      ? document.getElementById('otherMedicalSpecialty').value.trim()
-      : document.getElementById('medicalSpecialty').value,
+    medicalSpecialty: document.getElementById('medicalSpecialty').value,
     medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
