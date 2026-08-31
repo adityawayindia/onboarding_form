@@ -163,6 +163,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  /* -------------------------------------------------------
+     Pincode auto-fill (City/District + State) via India Post API
+     ------------------------------------------------------- */
+  const pincodeField = document.getElementById('pincode');
+  pincodeField.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    if (this.value.length === 6) lookupPincode(this.value);
+  });
+
   const agreeTerms = document.getElementById('agreeTerms');
   agreeTerms.addEventListener('change', validateForm);
 
@@ -411,6 +420,83 @@ function applySingleSelect(fieldId, value, options) {
       input.value = '';
       clearFieldError(config.otherInputId);
     }
+  }
+}
+
+/* -------------------------------------------------------
+   Pincode -> City/District + State auto-fill (India Post API)
+   ------------------------------------------------------- */
+let pincodeLookupToken = 0;
+
+// Single source of truth for the pincode lookup UI: which pin the state
+// applies to, and whether it's mid-flight, failed, or settled.
+const pincodeLookup = { pin: null, status: 'idle' }; // status: 'idle' | 'loading' | 'not-found'
+
+function renderPincodeLookup() {
+  const cityField = document.getElementById('districtCity');
+  const stateText = document.getElementById('stateText');
+  const loading = pincodeLookup.status === 'loading';
+
+  if (cityField) {
+    if (loading) cityField.value = '';
+    cityField.placeholder = loading ? 'Fetching...' : 'City / District';
+  }
+  if (stateText) {
+    if (loading) {
+      stateText.textContent = 'Fetching...';
+      stateText.classList.add('placeholder-text');
+      stateText.classList.remove('selected-text');
+      document.getElementById('state').value = '';
+    } else if (stateText.textContent === 'Fetching...') {
+      stateText.textContent = 'Select State';
+    }
+  }
+
+  validateField('pincode', pincodeLookup.status === 'not-found');
+}
+
+async function lookupPincode(pin) {
+  const token = ++pincodeLookupToken;
+  pincodeLookup.pin = pin;
+  pincodeLookup.status = 'loading';
+  renderPincodeLookup();
+
+  try {
+    const res = await fetch('https://api.postalpincode.in/pincode/' + pin);
+    if (!res.ok) {
+      pincodeLookup.status = 'not-found';
+      return;
+    }
+    const data = await res.json();
+    if (token !== pincodeLookupToken) return; // a newer lookup has started
+
+    const result = Array.isArray(data) ? data[0] : null;
+    if (!result || result.Status !== 'Success' || !Array.isArray(result.PostOffice) || !result.PostOffice.length) {
+      pincodeLookup.status = 'not-found';
+      return;
+    }
+
+    pincodeLookup.status = 'idle';
+    const office = result.PostOffice[0];
+
+    const cityField = document.getElementById('districtCity');
+    if (cityField && office.District) {
+      cityField.value = office.District;
+      markFieldInteracted('districtCity');
+      validateField('districtCity');
+    }
+
+    if (office.State) {
+      const stateMatch = DROPDOWN_CONFIG.state.options
+        .find(opt => opt.toLowerCase() === office.State.toLowerCase());
+      applySingleSelect('state', stateMatch || 'Other');
+      markFieldInteracted('state');
+      validateField('state');
+    }
+  } catch (err) {
+    pincodeLookup.status = 'idle'; // network failure: leave fields as-is for manual entry
+  } finally {
+    if (token === pincodeLookupToken) renderPincodeLookup();
   }
 }
 
@@ -969,6 +1055,7 @@ function getFieldError(id) {
     case 'pincode':
       if (!value) return 'Pincode is required.';
       if (!/^\d{6}$/.test(value)) return 'Enter a valid 6-digit pincode.';
+      if (pincodeLookup.status === 'not-found' && value === pincodeLookup.pin) return 'Pincode not found.';
       break;
 
     case 'districtCity':
@@ -1469,6 +1556,7 @@ function openLegalModal(type) {
   icon.className = 'fa-solid ' + content.icon;
   titleText.textContent = content.title;
   body.innerHTML = `<p class="legal-updated">${content.updated}</p>${content.html}`;
+  body.scrollTop = 0;
 
   backdrop.classList.add('active');
   document.body.style.overflow = 'hidden';
