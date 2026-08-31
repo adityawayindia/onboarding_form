@@ -373,6 +373,33 @@ body {
   grid-template-columns: repeat(3, 1fr);
 }
 
+/* Compact Registration Council + Regd. No. pairing (shares one grid column) */
+.regd-no-combo {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.regd-no-combo .council-part {
+  flex: 0 0 112px;
+  min-width: 0;
+}
+
+.regd-no-combo .regdno-part {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.council-trigger-compact {
+  padding-left: 10px;
+  padding-right: 8px;
+}
+
+.council-trigger-compact .trigger-content {
+  gap: 4px;
+  overflow: hidden;
+}
+
 /* ---------------------------------------------------------
    Input Groups & Labels
    --------------------------------------------------------- */
@@ -633,16 +660,52 @@ body {
   line-height: 1;
 }
 
+.modal-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 10px;
+  background: #FFFFFF;
+}
+
 .modal-search-box {
   position: relative;
-  padding: 14px 20px;
-  background: #FFFFFF;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-search-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 20px 14px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0C3B5E;
+  background: #EAF3FE;
+  border: 1px solid #BEDCFB;
+  border-radius: 10px;
+}
+
+.modal-search-hint i {
+  flex: none;
+  color: #0E65D7;
+  font-size: 15px;
+}
+
+.modal-search-hint[hidden] {
+  display: none;
+}
+
+.modal-search-row.no-hint {
+  padding-bottom: 14px;
   border-bottom: 1px solid #F1F5F9;
 }
 
 .modal-search-box input {
   width: 100%;
-  padding: 10px 14px 10px 38px;
+  padding: 10px 82px 10px 38px;
   font-size: 16px;
   font-family: inherit;
   border: 1.5px solid #CBD5E1;
@@ -663,9 +726,47 @@ body {
   opacity: 1;
 }
 
+.search-inline-add-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: #0E65D7;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-50%) scale(0.6);
+  transform-origin: right center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease, background 0.2s ease;
+}
+
+.search-inline-add-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+
+.search-inline-add-btn:hover {
+  background: #0C58BE;
+}
+
 .search-icon {
   position: absolute;
-  left: 32px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #64748B;
@@ -859,91 +960,6 @@ body {
   font-weight: 400;
 }
 
-/* Persistent "Add other ..." row pinned to the top of the list */
-.modal-options-list li.static-other-row {
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.modal-options-list li.static-other-row:hover {
-  background: #F0F6FE;
-}
-
-.static-other-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #334155;
-  font-weight: 500;
-}
-
-.static-other-label i {
-  color: #0E65D7;
-  font-size: 16px;
-}
-
-.modal-options-list li.custom-add-form-row {
-  cursor: default;
-  padding: 12px 20px;
-}
-
-.modal-options-list li.custom-add-form-row:hover {
-  background: #F8FAFC;
-}
-
-.custom-add-form {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.custom-add-input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 14px;
-  font-size: 16px;
-  font-family: inherit;
-  border: 1.5px solid #0E65D7;
-  border-radius: 10px;
-  outline: none;
-  background: #FFFFFF;
-  color: #0F172A;
-}
-
-.custom-add-input:focus {
-  box-shadow: 0 0 0 3px rgba(14, 101, 215, 0.12);
-}
-
-.custom-add-input::placeholder {
-  color: #64748B;
-}
-
-.custom-add-save-btn {
-  flex: none;
-  min-height: 40px;
-  padding: 8px 18px;
-  border: none;
-  border-radius: 10px;
-  background: #0E65D7;
-  color: #FFFFFF;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.custom-add-save-btn:hover:not(:disabled) {
-  background: #0C58BE;
-}
-
-.custom-add-save-btn:disabled {
-  background: #CBD5E1;
-  color: #94A3B8;
-  cursor: not-allowed;
-}
-
 /* Selected chips inside the modal */
 .modal-chips-row {
   display: none;
@@ -1111,6 +1127,177 @@ body {
   resize: vertical;
   min-height: 112px;
   line-height: 1.6;
+}
+
+/* =========================================================
+   RICH TEXT EDITOR (About Section)
+   Bold / Italic / Bullet-list editor built with a
+   contenteditable div. Two visual states, matching the old
+   textarea exactly:
+     - locked  (not editing) -> grey, dashed border
+     - editing (.is-editing) -> white, solid blue border
+   ========================================================= */
+
+/* The hidden <textarea> that stores the content for the form.
+   Kept in the DOM but never visible to the doctor. */
+.rte-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+}
+
+/* The wrapper is the ONE box the doctor sees: it alone carries the
+   border, rounded corners and glow. The toolbar and editor inside it
+   are borderless, so the two never mismatch and there's no seam for
+   a stray glow to leak out of (that was the "blue aura" bug). */
+.rte-wrapper {
+  width: 100%;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.rte-wrapper.is-editing {
+  border: 2px solid #0E65D7;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgba(14, 101, 215, 0.16);
+}
+
+.rte-wrapper.is-editing:focus-within {
+  border-color: #0C58BE;
+  box-shadow: 0 0 0 4px rgba(14, 101, 215, 0.22);
+}
+
+/* --- Toolbar (Bold / Italic / Bullets) --- */
+.rte-toolbar {
+  display: none;               /* only shown while editing */
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #F8FAFC;
+  border-radius: 12px 12px 0 0;
+  /* Thin line separating the toolbar from the text area below it */
+  border-bottom: 1px solid #DCE7F8;
+}
+
+.rte-wrapper.is-editing .rte-toolbar {
+  display: flex;
+}
+
+.rte-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.rte-btn:hover {
+  background: #F0F6FE;
+  border-color: #0E65D7;
+  color: #0E65D7;
+}
+
+/* .active = that format is switched on where the cursor currently is */
+.rte-btn.active {
+  background: #0E65D7;
+  border-color: #0E65D7;
+  color: #FFFFFF;
+}
+
+/* --- The editable box itself --- */
+.rte-editor {
+  width: 100%;
+  min-height: 112px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.25s ease;
+  /* Locked look: greyed out with a dashed border (the editor's own
+     border, since there is no toolbar above it in this state) */
+  color: #64748B;
+  background-color: #F1F5F9;
+  border: 1.5px dashed #94A3B8;
+  cursor: default;
+}
+
+/* Editing look: white background. The blue border + glow live on
+   .rte-wrapper (above), not here, so the toolbar and editor read as
+   one continuous box instead of two stacked ones. */
+.rte-wrapper.is-editing .rte-editor {
+  color: #0F172A;
+  background-color: #FFFFFF;
+  border: none;
+  border-radius: 0 0 12px 12px;
+  cursor: text;
+}
+
+/* Placeholder text, shown only when the editor is completely empty.
+   The .is-empty class is added/removed by the JavaScript. */
+.rte-editor.is-empty::before {
+  content: attr(data-placeholder);
+  color: #94A3B8;
+  pointer-events: none;   /* clicks pass through to the editor */
+}
+
+.rte-wrapper.is-editing .rte-editor.is-empty::before {
+  color: #64748B;
+}
+
+/* Error state, mirrors .form-textarea.error.
+   Targets whichever element currently owns the visible border:
+   the editor itself when locked, the wrapper when editing. */
+.form-group.invalid .rte-editor {
+  border-color: #DC2626;
+  background-color: #FEF2F2;
+}
+
+.form-group.invalid .rte-wrapper.is-editing {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
+.form-group.invalid .rte-wrapper.is-editing .rte-editor {
+  background-color: #FEF2F2;
+}
+
+/* --- How the doctor's formatting looks inside the editor --- */
+.rte-editor b,
+.rte-editor strong {
+  font-weight: 700;
+}
+
+.rte-editor i,
+.rte-editor em {
+  font-style: italic;
+}
+
+.rte-editor ul {
+  margin: 4px 0;
+  padding-left: 22px;
+  list-style: disc;
+}
+
+.rte-editor li {
+  margin-bottom: 2px;
 }
 
 /* About field — locked (inactive) vs editing (active) */
@@ -1566,6 +1753,10 @@ body {
   .form-row-3 {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .regd-no-combo {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1691,17 +1882,20 @@ body {
     font-size: 16px;
   }
 
-  .modal-search-box {
-    padding: 12px 16px;
+  .modal-search-row {
+    padding: 12px 16px 8px;
   }
 
   .modal-search-box input {
     font-size: 16px;
   }
 
-  /* Search box padding drops to 16px on mobile — keep the Add button inset */
-  .search-add-btn {
-    right: 22px;
+  .modal-search-hint {
+    margin: 0 16px 12px;
+  }
+
+  .modal-search-row.no-hint {
+    padding-bottom: 12px;
   }
 
   .modal-options-list {

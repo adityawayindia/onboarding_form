@@ -123,13 +123,25 @@
                   <span class="field-error-msg">This field is required.</span>
                 </div>
 
-                <div class="form-group">
-                  <div class="input-wrapper">
-                    <input type="text" id="mciRegdNo" class="form-input has-icon"
-                      placeholder="MCI Regd. No (for microsite)">
-                    <i class="fa-solid fa-hashtag field-icon"></i>
+                <div class="regd-no-combo">
+                  <div class="form-group council-part">
+                    <input type="hidden" id="registrationCouncil">
+                    <div class="custom-select-trigger council-trigger-compact" id="registrationCouncilTrigger" onclick="openDropdownModal('registrationCouncil')">
+                      <span class="trigger-content">
+                        <span class="placeholder-text" id="registrationCouncilText">Council</span>
+                      </span>
+                      <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <span class="field-error-msg">Required.</span>
                   </div>
-                  <span class="field-error-msg">Registration number is required.</span>
+
+                  <div class="form-group regdno-part">
+                    <div class="input-wrapper">
+                      <input type="text" id="mciRegdNo" class="form-input has-icon" placeholder="Regd. No.">
+                      <i class="fa-solid fa-hashtag field-icon"></i>
+                    </div>
+                    <span class="field-error-msg">Registration number is required.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -212,7 +224,7 @@
             <!-- ============= CLINIC DETAILS ============= -->
             <div class="section-block">
               <div class="section-title-row">
-                <div class="section-title"><i class="fa-solid fa-hospital"></i> Clinic Details</div>
+                <div class="section-title"><i class="fa-solid fa-hospital"></i> Hospital/Clinic Details</div>
               </div>
               <hr class="section-divider">
 
@@ -220,10 +232,10 @@
                 <div class="form-group">
                   <div class="input-wrapper">
                     <input type="text" id="clinicName" class="form-input has-icon"
-                      placeholder="Clinic/Hospital Name">
+                      placeholder="Hospital/Clinic Name">
                     <i class="fa-solid fa-hospital field-icon"></i>
                   </div>
-                  <span class="field-error-msg">Clinic / hospital name is required.</span>
+                  <span class="field-error-msg">Hospital/Clinic name is required.</span>
                 </div>
 
                 <div class="form-group">
@@ -283,8 +295,46 @@
               <hr class="section-divider">
 
               <div class="form-group">
-                <textarea id="aboutSection" class="form-textarea" rows="6"
-                  placeholder="Share a short bio patients will see on your DigiDr microsite..." readonly></textarea>
+                <!-- ===== RICH TEXT EDITOR (About Section) =====
+                     Three pieces work together here:
+                     1. .rte-toolbar  - the Bold / Italic / Bullets buttons
+                     2. #aboutEditor  - the box the doctor actually types into
+                                        (contenteditable = an editable div)
+                     3. #aboutSection - a hidden <textarea> that holds the same
+                                        content as HTML text. It stays because
+                                        validation, draft-saving and form submit
+                                        all read this field. The editor copies
+                                        its content into it on every keystroke. -->
+                <div class="rte-wrapper" id="aboutRteWrapper">
+
+                  <!-- Formatting buttons. Hidden until the doctor clicks "Edit".
+                       onmousedown (not onclick) + preventDefault keeps the text
+                       cursor inside the editor, so the selection isn't lost. -->
+                  <div class="rte-toolbar" id="aboutRteToolbar">
+                    <button type="button" class="rte-btn" data-rte-command="bold" title="Bold (Ctrl+B)"
+                      onmousedown="handleRteButton(event, 'bold')">
+                      <i class="fa-solid fa-bold"></i>
+                    </button>
+                    <button type="button" class="rte-btn" data-rte-command="italic" title="Italic (Ctrl+I)"
+                      onmousedown="handleRteButton(event, 'italic')">
+                      <i class="fa-solid fa-italic"></i>
+                    </button>
+                    <button type="button" class="rte-btn" data-rte-command="insertUnorderedList" title="Bullet list"
+                      onmousedown="handleRteButton(event, 'insertUnorderedList')">
+                      <i class="fa-solid fa-list-ul"></i>
+                    </button>
+                  </div>
+
+                  <!-- The visible editing area. data-placeholder shows the grey
+                       hint text via CSS when the editor is empty. -->
+                  <div id="aboutEditor" class="rte-editor" contenteditable="false"
+                    data-placeholder="Share a short bio patients will see on your DigiDr microsite..."
+                    role="textbox" aria-multiline="true" aria-label="About section"></div>
+                </div>
+
+                <!-- Hidden mirror of the editor content. Never shown to the doctor. -->
+                <textarea id="aboutSection" class="rte-hidden-input" rows="6" tabindex="-1"
+                  aria-hidden="true" readonly></textarea>
                 <span class="field-error-msg">Tell us a bit more (min. 20 characters).</span>
               </div>
             </div>
@@ -380,11 +430,18 @@
       </div>
 
       <!-- Modal Search Bar (doubles as the add field for custom entries) -->
-      <div class="modal-search-box" id="modalSearchBox">
-        <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
-        <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
-          oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
+      <div class="modal-search-row" id="modalSearchRow">
+        <div class="modal-search-box" id="modalSearchBox">
+          <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
+          <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
+            oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
+          <button type="button" class="search-inline-add-btn" id="searchInlineAddBtn"
+            tabindex="-1" aria-hidden="true" onclick="handleInlineAddClick()">
+            <i class="fa-solid fa-plus"></i> Add
+          </button>
+        </div>
       </div>
+      <p class="modal-search-hint" id="modalSearchHint"><i class="fa-solid fa-circle-info"></i> Can't find it in the list? Just type it in to add it.</p>
 
       <!-- Selected Chips (multi-select only) -->
       <div class="modal-chips-row" id="modalChipsRow"></div>

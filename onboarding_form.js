@@ -140,13 +140,14 @@ document.addEventListener('DOMContentLoaded', function () {
   /* -------------------------------------------------------
      Wire up live validation for all fields
      ------------------------------------------------------- */
+  // Note: 'aboutSection' is not listed here. It is a hidden textarea fed by
+  // the rich text editor, which runs its own validation via syncRteToTextarea.
   const allFieldIds = [
-    'firstName', 'email', 'gender', 'mciRegdNo',
+    'firstName', 'email', 'gender', 'registrationCouncil', 'mciRegdNo',
     'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience',
     'qualifications',
     'medicalInstitute', 'otherMedicalInstitute',
-    'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state',
-    'aboutSection'
+    'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state'
   ];
 
   allFieldIds.forEach(id => {
@@ -165,6 +166,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const agreeTerms = document.getElementById('agreeTerms');
   agreeTerms.addEventListener('change', validateForm);
 
+  // Set up the About Section rich text editor before any draft is
+  // restored, so restored content lands in a ready editor.
+  initRichTextEditor();
+
   restoreOnboardingDraft();
 
   /* Initial pass */
@@ -182,6 +187,13 @@ const DROPDOWN_CONFIG = {
     title: 'Select Gender',
     icon: 'fa-venus-mars',
     options: ['Male', 'Female', 'Other', 'Prefer not to say']
+  },
+  registrationCouncil: {
+    title: 'Select Registration Council',
+    icon: 'fa-landmark',
+    allowCustom: true,
+    placeholder: 'Search registration council',
+    options: ['MCI', 'DCI']
   },
   medicalSpecialty: {
     title: 'Select Medical Specialty',
@@ -251,7 +263,6 @@ function buildYearsExperienceOptions() {
 }
 
 let currentDropdownField = null;
-let customAddRowOpen = false;
 let aboutEditMode = false;
 let aboutOriginalValue = '';
 
@@ -287,6 +298,7 @@ function collectDraft() {
     phoneIso2: country && country.iso2 ? country.iso2 : 'in',
     phoneE164,
     gender: document.getElementById('gender').value,
+    registrationCouncil: document.getElementById('registrationCouncil').value,
     mciRegdNo: document.getElementById('mciRegdNo').value,
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
     medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
@@ -420,13 +432,17 @@ function restoreOnboardingDraft() {
     if (draft) {
       const textIds = [
         'firstName', 'email', 'mciRegdNo',
-        'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'aboutSection'
+        'clinicName', 'clinicAddress', 'pincode', 'districtCity'
       ];
       textIds.forEach(id => {
         if (typeof draft[id] === 'string') document.getElementById(id).value = draft[id];
       });
 
-      ['gender', 'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience', 'medicalInstitute', 'state']
+      // About Section holds HTML, so it goes through the editor
+      // (which sanitizes it) rather than straight into the textarea.
+      if (typeof draft.aboutSection === 'string') setRteContent(draft.aboutSection);
+
+      ['gender', 'registrationCouncil', 'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience', 'medicalInstitute', 'state']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
 
       if (draft.medicalInstitute === 'Other' && typeof draft.otherMedicalInstitute === 'string') {
@@ -473,17 +489,20 @@ function openDropdownModal(fieldId) {
   if (!config) return;
 
   currentDropdownField = fieldId;
-  customAddRowOpen = false;
 
   const backdrop = document.getElementById('selectModalBackdrop');
   const searchInput = document.getElementById('modalSearchInput');
   const modalIcon = document.getElementById('modalIcon');
   const modalTitleText = document.getElementById('modalTitleText');
+  const searchRow = document.getElementById('modalSearchRow');
+  const searchHint = document.getElementById('modalSearchHint');
 
   modalIcon.className = 'fa-solid ' + config.icon;
   modalTitleText.textContent = config.title;
   searchInput.value = '';
   searchInput.placeholder = config.placeholder || 'Search...';
+  searchHint.hidden = !config.allowCustom;
+  searchRow.classList.toggle('no-hint', !config.allowCustom);
 
   resetSearchBarMode();
 
@@ -518,7 +537,6 @@ function closeDropdownModal() {
     validateField(fieldId);
   }
   currentDropdownField = null;
-  customAddRowOpen = false;
   resetSearchBarMode();
   updateModalCloseButton();
 }
@@ -552,7 +570,7 @@ function handleModalSearchKeydown(e) {
   e.preventDefault();
 
   const config = DROPDOWN_CONFIG[currentDropdownField];
-  if (!config || config.allowCustom) return;
+  if (!config) return;
 
   const inputEl = document.getElementById('modalSearchInput');
   const typed = inputEl.value.trim();
@@ -561,7 +579,19 @@ function handleModalSearchKeydown(e) {
   const match = config.options
     .map(normalizeOption)
     .find(opt => dedupeKey(opt.label) === dedupeKey(typed));
-  if (match) selectDropdownOption(match.value, match.label);
+
+  if (match) {
+    if (config.multi) {
+      addMultiValue(currentDropdownField, match.value);
+      inputEl.value = '';
+      renderModalOptions(config, '');
+    } else {
+      selectDropdownOption(match.value, match.label);
+    }
+    return;
+  }
+
+  if (config.allowCustom) addCustomFromSearch(currentDropdownField, config, typed);
 }
 
 /* Splits "FRCS, DMCB" into individual entries and adds each one */
@@ -744,96 +774,28 @@ function renderModalChips() {
 }
 
 /* -------------------------------------------------------
-   "Add other ..." row — opens inline input + Save in place
+   Add-your-own: the search box doubles as the add field.
+   Typing something not in the list surfaces a clickable
+   "+ Add '<text>'" row; Enter does the same thing.
    ------------------------------------------------------- */
-function renderStaticAddRow(list, config) {
-  const li = document.createElement('li');
-  li.className = 'static-other-row';
-
-  const label = document.createElement('span');
-  label.className = 'static-other-label';
-  const separator = currentDropdownField === 'medicalSubSpecialty' ? '<br>' : ' ';
-  label.innerHTML = '<i class="fa-solid fa-circle-plus"></i> Add other '
-    + config.title.replace(/^Select /i, '').toLowerCase()
-    + separator + '(if not present in the list)';
-  li.appendChild(label);
-
-  li.addEventListener('click', () => {
-    customAddRowOpen = true;
-    const searchVal = document.getElementById('modalSearchInput').value;
-    renderModalOptions(config, searchVal);
-  });
-  list.appendChild(li);
-}
-
-function renderCustomAddForm(list, config) {
-  const li = document.createElement('li');
-  li.className = 'static-other-row custom-add-form-row';
-
-  const form = document.createElement('div');
-  form.className = 'custom-add-form';
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'custom-add-input';
-  input.placeholder = 'Type ' + config.title.replace(/^Select /i, '').replace(/^Medical /i, '').toLowerCase() + '...';
-  input.autocomplete = 'off';
-  input.addEventListener('input', function () {
-    this.value = this.value.replace(/[0-9]/g, '');
-    updateCustomAddSaveButton(input, saveBtn);
-  });
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (!saveBtn.disabled) saveCustomQualification(this);
-    } else if (e.key === 'Escape') {
-      customAddRowOpen = false;
-      renderModalOptions(config, document.getElementById('modalSearchInput').value);
-    }
-  });
-
-  const saveBtn = document.createElement('button');
-  saveBtn.type = 'button';
-  saveBtn.className = 'custom-add-save-btn';
-  saveBtn.textContent = 'Save';
-  saveBtn.disabled = true;
-  saveBtn.addEventListener('click', () => {
-    if (!saveBtn.disabled) saveCustomQualification(input);
-  });
-
-  form.appendChild(input);
-  form.appendChild(saveBtn);
-  li.appendChild(form);
-  list.appendChild(li);
-
-  setTimeout(() => input.focus(), 0);
-}
-
-function updateCustomAddSaveButton(inputEl, saveBtn) {
-  if (!inputEl || !saveBtn) return;
-  saveBtn.disabled = inputEl.value.trim().length === 0;
-}
-
-function saveCustomQualification(inputEl) {
-  const config = DROPDOWN_CONFIG[currentDropdownField];
-  if (!config || !config.allowCustom) return;
-
-  const typed = inputEl.value.trim();
+function addCustomFromSearch(fieldId, config, rawText) {
+  const typed = rawText.trim();
   if (!typed) return;
 
   // Single-select fields take exactly one custom value and close immediately
   if (!config.multi) {
-    const value = canonicalize(currentDropdownField, typed.replace(/\s+/g, ' '));
-    applySingleCustomValue(currentDropdownField, value);
-    customAddRowOpen = false;
+    const value = canonicalize(fieldId, typed.replace(/\s+/g, ' '));
+    applySingleCustomValue(fieldId, value);
     closeDropdownModal();
     return;
   }
 
-  commitCustomEntries(currentDropdownField, typed);
-  customAddRowOpen = false;
+  commitCustomEntries(fieldId, typed);
+  const searchInput = document.getElementById('modalSearchInput');
+  searchInput.value = '';
   renderModalChips();
-  renderModalOptions(config, document.getElementById('modalSearchInput').value);
+  renderModalOptions(config, '');
+  searchInput.focus();
 }
 
 /* Commits a typed-in value for a single-select field (not in the options list) */
@@ -866,14 +828,6 @@ function renderModalOptions(config, filterText) {
 
   list.innerHTML = '';
 
-  if (config.allowCustom && !query) {
-    if (customAddRowOpen) {
-      renderCustomAddForm(list, config);
-    } else {
-      renderStaticAddRow(list, config);
-    }
-  }
-
   let optionList = config.options.map(normalizeOption);
 
   if (!isMulti && config.allowCustom && currentValue) {
@@ -893,13 +847,14 @@ function renderModalOptions(config, filterText) {
       return filter.length > 0 && acronym.startsWith(filter);
     });
 
-  const extraRows = list.querySelectorAll('.static-other-row').length;
-  if (filtered.length === 0 && extraRows === 0) {
+  // Reveal the inline "+" button whenever what's typed isn't an exact known option
+  const hasExactMatch = optionList.some(opt => dedupeKey(opt.label) === dedupeKey(query));
+  updateInlineAddButton(!!(config.allowCustom && query && !hasExactMatch), query);
+
+  if (filtered.length === 0) {
     const li = document.createElement('li');
     li.className = 'no-results';
-    li.textContent = config.allowCustom && query
-      ? 'Not in the list'
-      : 'No matches found';
+    li.textContent = 'No matches';
     list.appendChild(li);
     return;
   }
@@ -921,6 +876,23 @@ function renderModalOptions(config, filterText) {
   });
 }
 
+/* Inline "+" button inside the search box — the mouse-driven equivalent of Enter */
+function updateInlineAddButton(show, query) {
+  const btn = document.getElementById('searchInlineAddBtn');
+  if (!btn) return;
+  btn.classList.toggle('visible', !!show);
+  btn.tabIndex = show ? 0 : -1;
+  btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+  btn.title = show ? 'Add "' + query + '"' : '';
+}
+
+function handleInlineAddClick() {
+  const config = DROPDOWN_CONFIG[currentDropdownField];
+  if (!config || !config.allowCustom) return;
+  const inputEl = document.getElementById('modalSearchInput');
+  addCustomFromSearch(currentDropdownField, config, inputEl.value);
+}
+
 /* -------------------------------------------------------
    Single-select commit
    ------------------------------------------------------- */
@@ -933,7 +905,7 @@ function selectDropdownOption(value, label) {
    Field-level validation
    ------------------------------------------------------- */
 const REQUIRED_FIELDS = [
-  'firstName', 'email', 'phone', 'gender', 'mciRegdNo',
+  'firstName', 'email', 'phone', 'gender', 'registrationCouncil', 'mciRegdNo',
   'medicalSpecialty', 'yearsExperience', 'qualifications',
   'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state'
 ];
@@ -946,6 +918,7 @@ function getFieldError(id) {
 
   switch (id) {
     case 'gender':
+    case 'registrationCouncil':
     case 'medicalSpecialty':
     case 'yearsExperience':
     case 'state':
@@ -1002,9 +975,13 @@ function getFieldError(id) {
       if (!value) return 'District / City is required.';
       break;
 
-    case 'aboutSection':
-      if (value && value.length < 20) return 'Tell us a bit more (min. 20 characters).';
+    case 'aboutSection': {
+      // The stored value is HTML, so measure the visible text only —
+      // otherwise tags like <b></b> would count towards the 20 characters.
+      const plain = getRtePlainText(value);
+      if (plain && plain.length < 20) return 'Tell us a bit more (min. 20 characters).';
       break;
+    }
   }
   return '';
 }
@@ -1083,11 +1060,25 @@ function handleOnboardingSubmit(event) {
   idsToCheck.forEach(id => {
     markFieldInteracted(id);
     const ok = validateField(id, true);
-    if (!ok && !firstInvalid) firstInvalid = document.getElementById(id);
+    if (!ok && !firstInvalid) {
+      // The About field's real input is the rich text editor, not the
+      // hidden textarea — focus the visible box so the doctor can see it.
+      firstInvalid = id === 'aboutSection'
+        ? document.getElementById('aboutEditor')
+        : document.getElementById(id);
+    }
   });
 
   if (!validateForm()) {
     if (firstInvalid) firstInvalid.focus();
+    return;
+  }
+
+  // Stop here if the About Section is still open for editing, so the
+  // doctor's unsaved text can't be silently left out of the submission.
+  if (aboutEditMode) {
+    alert('Please save or cancel the About Section before submitting.');
+    document.getElementById('aboutEditor').focus();
     return;
   }
 
@@ -1097,6 +1088,7 @@ function handleOnboardingSubmit(event) {
     email: document.getElementById('email').value.trim(),
     phone: phoneInput.getNumber(),
     gender: document.getElementById('gender').value,
+    registrationCouncil: document.getElementById('registrationCouncil').value,
     mciRegdNo: document.getElementById('mciRegdNo').value.trim(),
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
     medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
@@ -1110,14 +1102,15 @@ function handleOnboardingSubmit(event) {
     pincode: document.getElementById('pincode').value.trim(),
     districtCity: document.getElementById('districtCity').value.trim(),
     state: document.getElementById('state').value,
-    aboutSection: document.getElementById('aboutSection').value.trim(),
+    // About Section is rich text. It is sent twice:
+    //   aboutSection     - safe HTML (bold / italic / bullets kept)
+    //   aboutSectionText - the same words with no formatting, for
+    //                      anywhere that cannot display HTML.
+    // Sanitized once more here so nothing unsafe can ever leave the form.
+    aboutSection: sanitizeRteHtml(document.getElementById('aboutSection').value.trim()),
+    aboutSectionText: getRtePlainText(document.getElementById('aboutSection').value),
     profilePhoto: localStorage.getItem(PHOTO_STORAGE_KEY) || ''
   };
-
-  if (aboutEditMode) {
-    alert('Please save or cancel the About Section before submitting.');
-    return;
-  }
 
   console.log('Onboarding Form Submitted:', formData);
 
@@ -1128,42 +1121,251 @@ function handleOnboardingSubmit(event) {
   document.getElementById('onboardingSuccessContent').style.display = 'block';
 }
 
+/* =========================================================
+   RICH TEXT EDITOR (About Section)
+
+   How it works, in one paragraph:
+   The doctor types into #aboutEditor, which is a normal <div>
+   with contenteditable="true" (that is what makes a div
+   typeable). Every time the content changes we clean it and
+   copy it into the hidden <textarea id="aboutSection">. All
+   the existing form code (validation, draft saving, submit)
+   keeps reading that textarea, so nothing else had to change.
+
+   Only three formats are allowed: bold, italic, bullet list.
+   ========================================================= */
+
+/* The only HTML tags we allow to be saved. Anything else the
+   browser or a paste might produce gets stripped out.
+   This is what stops unsafe HTML (e.g. <script>) being saved. */
+const RTE_ALLOWED_TAGS = ['B', 'STRONG', 'I', 'EM', 'UL', 'LI', 'BR', 'DIV', 'P'];
+
+/* Removes everything we don't allow from a chunk of HTML.
+   Returns clean HTML text that is safe to store and re-display.
+
+   Two rules:
+   1. A tag that is not in the allow-list is unwrapped - the tag
+      itself disappears but the words inside it are kept.
+   2. Every attribute is removed (style, class, onclick, href...),
+      so no script or styling can sneak in via a paste. */
+function sanitizeRteHtml(dirtyHtml) {
+  // Parse the HTML inside a separate, inactive document. Nothing in it
+  // can run or load - an <img onerror="..."> here never fires, because
+  // the document it lives in is not the page the doctor is looking at.
+  const holder = document.implementation
+    .createHTMLDocument('rte-sanitizer')
+    .createElement('div');
+  holder.innerHTML = dirtyHtml;
+
+  // Walk every element. We copy the list first because we are
+  // modifying the tree while looping over it.
+  const elements = Array.prototype.slice.call(holder.querySelectorAll('*'));
+
+  elements.forEach(el => {
+    // Rule 1: not an allowed tag -> replace the tag with its own contents
+    if (RTE_ALLOWED_TAGS.indexOf(el.tagName) === -1) {
+      while (el.firstChild) el.parentNode.insertBefore(el.firstChild, el);
+      el.remove();
+      return;
+    }
+    // Rule 2: strip every attribute from the tags we do keep
+    while (el.attributes.length > 0) {
+      el.removeAttribute(el.attributes[0].name);
+    }
+  });
+
+  return holder.innerHTML;
+}
+
+/* Returns just the words the doctor typed, with all tags removed.
+   Used for the "minimum 20 characters" check, so that markup
+   like <b></b> is never counted as if it were real text. */
+function getRtePlainText(html) {
+  // Same inactive-document trick as above, so reading the text of
+  // untrusted HTML can never trigger anything.
+  const holder = document.implementation
+    .createHTMLDocument('rte-text')
+    .createElement('div');
+  holder.innerHTML = html || '';
+  // \u00A0 is a non-breaking space (&nbsp;) - treat it as a normal space
+  return (holder.textContent || '').replace(/\u00A0/g, ' ').trim();
+}
+
+/* True when the editor has no real content. An "empty" editor can
+   still contain leftover markup like <br> or <div><br></div>,
+   which is why we check the text and not the HTML. */
+function isRteEmpty(editor) {
+  if (getRtePlainText(editor.innerHTML) !== '') return false;
+  // A list the doctor just started counts as content, not empty
+  return !editor.querySelector('ul, li');
+}
+
+/* Copies the editor content into the hidden textarea and
+   re-runs the normal form validation. Called on every change. */
+function syncRteToTextarea() {
+  const editor = document.getElementById('aboutEditor');
+  const textarea = document.getElementById('aboutSection');
+  if (!editor || !textarea) return;
+
+  // Show or hide the grey placeholder text
+  editor.classList.toggle('is-empty', isRteEmpty(editor));
+
+  // Store empty string (not stray markup) when there is no real text
+  textarea.value = isRteEmpty(editor) ? '' : sanitizeRteHtml(editor.innerHTML);
+
+  markFieldInteracted('aboutSection');
+  validateField('aboutSection');
+}
+
+/* Runs when a toolbar button is pressed.
+
+   We use onmousedown + preventDefault instead of onclick so the
+   editor never loses focus - if it did, the browser would forget
+   which text was selected and the formatting would apply to
+   nothing. */
+function handleRteButton(event, command) {
+  event.preventDefault();
+
+  const editor = document.getElementById('aboutEditor');
+  if (!editor || editor.getAttribute('contenteditable') !== 'true') return;
+
+  editor.focus();
+
+  // execCommand is the long-standing browser API for contenteditable
+  // formatting. It is marked deprecated but is still supported in every
+  // current browser and has no standard replacement.
+  try {
+    document.execCommand(command, false, null);
+  } catch (err) {
+    console.warn('Formatting command failed:', command, err);
+  }
+
+  syncRteToTextarea();
+  updateRteToolbarState();
+}
+
+/* Highlights the toolbar buttons that are active where the
+   cursor currently is (e.g. B lights up inside bold text). */
+function updateRteToolbarState() {
+  const editor = document.getElementById('aboutEditor');
+  const toolbar = document.getElementById('aboutRteToolbar');
+  if (!editor || !toolbar) return;
+
+  toolbar.querySelectorAll('.rte-btn').forEach(btn => {
+    const command = btn.dataset.rteCommand;
+    let isOn = false;
+    try {
+      isOn = document.queryCommandState(command);
+    } catch (err) {
+      isOn = false;
+    }
+    btn.classList.toggle('active', !!isOn);
+  });
+}
+
+/* Puts saved content back into the editor. Used when a draft is
+   restored from localStorage and when an edit is cancelled.
+   The value is sanitized on the way in as well as on the way out,
+   so even a tampered draft in localStorage cannot inject HTML. */
+function setRteContent(html) {
+  const editor = document.getElementById('aboutEditor');
+  const textarea = document.getElementById('aboutSection');
+  if (!editor || !textarea) return;
+
+  const clean = sanitizeRteHtml(html || '');
+  editor.innerHTML = clean;
+  textarea.value = isRteEmpty(editor) ? '' : clean;
+  editor.classList.toggle('is-empty', isRteEmpty(editor));
+}
+
+/* Wires up the editor once, when the page loads. */
+function initRichTextEditor() {
+  const editor = document.getElementById('aboutEditor');
+  if (!editor) return;
+
+  // Any typing, deleting or formatting change
+  editor.addEventListener('input', syncRteToTextarea);
+
+  // Keep the toolbar highlights in step with the cursor
+  editor.addEventListener('keyup', updateRteToolbarState);
+  editor.addEventListener('mouseup', updateRteToolbarState);
+
+  // Paste: always insert plain text. This is the single most common
+  // way unwanted markup (fonts, colours, Word styling) gets in, so we
+  // take the text only and drop everything else.
+  editor.addEventListener('paste', function (e) {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  });
+
+  // Drag-and-dropped content can carry markup too - block it.
+  editor.addEventListener('drop', e => e.preventDefault());
+
+  // Ctrl/Cmd + B and Ctrl/Cmd + I keyboard shortcuts
+  editor.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const key = e.key.toLowerCase();
+    if (key === 'b' || key === 'i') {
+      e.preventDefault();
+      handleRteButton(e, key === 'b' ? 'bold' : 'italic');
+    }
+  });
+
+  // Start in the locked state showing the placeholder
+  editor.classList.toggle('is-empty', isRteEmpty(editor));
+}
+
 /* -------------------------------------------------------
-   About Section Edit Mode
+   About Section Edit Mode (locked <-> editing)
    ------------------------------------------------------- */
 function enterAboutEditMode() {
   aboutEditMode = true;
-  const textarea = document.getElementById('aboutSection');
+  const editor = document.getElementById('aboutEditor');
+  const wrapper = document.getElementById('aboutRteWrapper');
   const editBtn = document.getElementById('aboutEditBtn');
   const actionBtns = document.getElementById('aboutActionBtns');
 
-  aboutOriginalValue = textarea.value;
-  textarea.removeAttribute('readonly');
-  textarea.focus();
+  // Remember the current content so "Cancel" can put it back
+  aboutOriginalValue = document.getElementById('aboutSection').value;
+
+  wrapper.classList.add('is-editing');       // shows toolbar + blue border
+  editor.setAttribute('contenteditable', 'true');
+  editor.focus();
+
   editBtn.style.display = 'none';
   actionBtns.style.display = 'flex';
+  updateRteToolbarState();
 }
 
 function cancelAboutEdit() {
   aboutEditMode = false;
-  const textarea = document.getElementById('aboutSection');
+  const editor = document.getElementById('aboutEditor');
+  const wrapper = document.getElementById('aboutRteWrapper');
   const editBtn = document.getElementById('aboutEditBtn');
   const actionBtns = document.getElementById('aboutActionBtns');
 
-  textarea.value = aboutOriginalValue;
-  textarea.setAttribute('readonly', '');
+  setRteContent(aboutOriginalValue);          // discard the changes
+  wrapper.classList.remove('is-editing');
+  editor.setAttribute('contenteditable', 'false');
+
   editBtn.style.display = 'inline-flex';
   actionBtns.style.display = 'none';
+  validateField('aboutSection');
   persistDraft();
 }
 
 function saveAboutEdit() {
   aboutEditMode = false;
-  const textarea = document.getElementById('aboutSection');
+  const editor = document.getElementById('aboutEditor');
+  const wrapper = document.getElementById('aboutRteWrapper');
   const editBtn = document.getElementById('aboutEditBtn');
   const actionBtns = document.getElementById('aboutActionBtns');
 
-  textarea.setAttribute('readonly', '');
+  syncRteToTextarea();                        // keep the latest content
+  wrapper.classList.remove('is-editing');
+  editor.setAttribute('contenteditable', 'false');
+
   editBtn.style.display = 'inline-flex';
   actionBtns.style.display = 'none';
   validateField('aboutSection');
