@@ -1171,6 +1171,42 @@ body {
   color: #0E65D7;
 }
 
+/* Custom-added entries show a remove button instead of the checkmark */
+.modal-options-list li.has-remove::after {
+  content: none;
+}
+
+.modal-options-list li.has-remove {
+  gap: 10px;
+}
+
+.option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option-remove {
+  border: none;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  flex: none;
+  transition: all 0.2s ease;
+}
+
+.option-remove:hover {
+  background: #0E65D7;
+  color: #FFFFFF;
+}
+
 .modal-options-list li.no-results {
   color: #64748B;
   cursor: default;

@@ -1123,7 +1123,9 @@ function renderModalChips() {
   const config = DROPDOWN_CONFIG[currentDropdownField];
   row.innerHTML = '';
 
-  if (!config || !config.multi) {
+  // Fields capped at one selection show their custom entry inline in the
+  // options list (with its own remove button) instead of a chip row here.
+  if (!config || !config.multi || config.maxSelections === 1) {
     row.classList.remove('active');
     return;
   }
@@ -1276,10 +1278,20 @@ function renderModalOptions(config, filterText) {
   list.innerHTML = '';
 
   let optionList = config.options.map(normalizeOption);
+  const knownValues = new Set(optionList.map(opt => dedupeKey(opt.value)));
 
   if (!isMulti && config.allowCustom && currentValue) {
     const isKnown = optionList.some(opt => dedupeKey(opt.value) === dedupeKey(currentValue));
     if (!isKnown) optionList = [{ value: currentValue, label: currentValue }].concat(optionList);
+  }
+
+  // Fields capped at one selection: surface a saved custom entry as a
+  // regular list row (with a remove button) rather than a separate chip.
+  if (isMulti && config.maxSelections === 1 && config.allowCustom && selected.length > 0) {
+    const customValue = selected[0];
+    if (!knownValues.has(dedupeKey(customValue))) {
+      optionList = [{ value: customValue, label: customValue }].concat(optionList);
+    }
   }
 
   const filtered = optionList
@@ -1304,8 +1316,32 @@ function renderModalOptions(config, filterText) {
 
   filtered.forEach(opt => {
     const li = document.createElement('li');
-    li.textContent = opt.label;
     li.dataset.value = opt.value;
+
+    const isCustomEntry = isMulti && config.maxSelections === 1
+      && config.allowCustom && !knownValues.has(dedupeKey(opt.value));
+
+    if (isCustomEntry) {
+      li.classList.add('has-remove');
+
+      const label = document.createElement('span');
+      label.className = 'option-label';
+      label.textContent = opt.label;
+      li.appendChild(label);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'option-remove';
+      removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      removeBtn.title = 'Remove ' + opt.label;
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeMultiValue(currentDropdownField, opt.value);
+      });
+      li.appendChild(removeBtn);
+    } else {
+      li.textContent = opt.label;
+    }
 
     if (isMulti) {
       if (selected.some(v => dedupeKey(v) === dedupeKey(opt.value))) li.classList.add('selected');
