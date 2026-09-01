@@ -146,8 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'firstName', 'email', 'gender', 'registrationCouncil', 'mciRegdNo',
     'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience',
     'qualifications',
-    'medicalInstitute', 'otherMedicalInstitute',
-    'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state'
+    'medicalInstitute', 'otherMedicalInstitute'
   ];
 
   allFieldIds.forEach(id => {
@@ -164,13 +163,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   /* -------------------------------------------------------
-     Pincode auto-fill (City/District + State) via India Post API
+     Hospital/Clinic Location(s) — starts with one location
      ------------------------------------------------------- */
-  const pincodeField = document.getElementById('pincode');
-  pincodeField.addEventListener('input', function () {
-    this.value = this.value.replace(/\D/g, '').slice(0, 6);
-    if (this.value.length === 6) lookupPincode(this.value);
-  });
+  addClinicLocation();
 
   const agreeTerms = document.getElementById('agreeTerms');
   agreeTerms.addEventListener('change', validateForm);
@@ -199,9 +194,13 @@ const DROPDOWN_CONFIG = {
   },
   registrationCouncil: {
     title: 'Select Registration Council',
+    triggerLabel: 'Council',
     icon: 'fa-landmark',
+    multi: true,
+    maxSelections: 1,
     allowCustom: true,
-    placeholder: 'Search registration council',
+    placeholder: 'Council',
+    addPlaceholder: 'Add your registration council',
     options: ['MCI', 'DCI']
   },
   medicalSpecialty: {
@@ -217,8 +216,11 @@ const DROPDOWN_CONFIG = {
   medicalSubSpecialty: {
     title: 'Select Medical Sub-specialty',
     icon: 'fa-bookmark',
+    multi: true,
+    maxSelections: 1,
     allowCustom: true,
     placeholder: 'Search sub-speciality',
+    addPlaceholder: 'Add your sub-speciality',
     options: [
       'Interventional Cardiology', 'Pediatric Surgery', 'Neuro-Oncology', 'Joint Replacement',
       'Maternal-Fetal Medicine', 'Retina & Vitreous'
@@ -235,6 +237,7 @@ const DROPDOWN_CONFIG = {
     multi: true,
     allowCustom: true,
     placeholder: 'Search qualification',
+    addPlaceholder: 'Add your qualification',
     options: [
       'MBBS', 'MD', 'MS', 'DNB', 'DM', 'MCh', 'BDS', 'MDS', 'BAMS', 'BHMS', 'BUMS',
       'DGO', 'DCH', 'DA', 'DOMS', 'DLO', 'DPM', 'FRCS', 'MRCP', 'FRCP', 'FACS',
@@ -277,7 +280,9 @@ let aboutOriginalValue = '';
 
 /* Selected values for multi-select fields, keyed by field id */
 const MULTI_SELECTIONS = {
-  qualifications: []
+  qualifications: [],
+  medicalSubSpecialty: [],
+  registrationCouncil: []
 };
 
 function normalizeOption(opt) {
@@ -307,19 +312,15 @@ function collectDraft() {
     phoneIso2: country && country.iso2 ? country.iso2 : 'in',
     phoneE164,
     gender: document.getElementById('gender').value,
-    registrationCouncil: document.getElementById('registrationCouncil').value,
+    registrationCouncil: MULTI_SELECTIONS.registrationCouncil.slice(),
     mciRegdNo: document.getElementById('mciRegdNo').value,
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
-    medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
+    medicalSubSpecialty: MULTI_SELECTIONS.medicalSubSpecialty.slice(),
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
     medicalInstitute: document.getElementById('medicalInstitute').value,
     otherMedicalInstitute: document.getElementById('otherMedicalInstitute').value,
-    clinicName: document.getElementById('clinicName').value,
-    clinicAddress: document.getElementById('clinicAddress').value,
-    pincode: document.getElementById('pincode').value,
-    districtCity: document.getElementById('districtCity').value,
-    state: document.getElementById('state').value,
+    clinicLocations: collectClinicLocations(),
     aboutSection: document.getElementById('aboutSection').value,
     agreeTerms: document.getElementById('agreeTerms').checked
   };
@@ -423,19 +424,247 @@ function applySingleSelect(fieldId, value, options) {
   }
 }
 
+/* =========================================================
+   Hospital/Clinic Locations (up to 3, one marked default)
+
+   Each location's fields are suffixed "-<index>" (e.g. "pincode-0").
+   `locationIndices` holds the indexes currently on screen, in the
+   order the doctor added them; `defaultLocationIndex` is which one
+   is used for patient communication.
+   ========================================================= */
+const MAX_CLINIC_LOCATIONS = 3;
+let locationIndices = [];
+let defaultLocationIndex = 0;
+
+function clinicLocationFieldIds(i) {
+  return ['clinicName-' + i, 'clinicAddress-' + i, 'pincode-' + i, 'districtCity-' + i, 'state-' + i];
+}
+
+function generateLocationBlockHtml(i) {
+  return `
+    <div class="clinic-location-block" data-location-index="${i}">
+      <div class="location-header"></div>
+
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input type="text" id="clinicName-${i}" class="form-input has-icon"
+              placeholder="Hospital/Clinic Name">
+            <i class="fa-solid fa-hospital field-icon"></i>
+          </div>
+          <span class="field-error-msg">Hospital/Clinic name is required.</span>
+        </div>
+
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input type="text" id="clinicAddress-${i}" class="form-input has-icon"
+              placeholder="Address (Street)">
+            <i class="fa-solid fa-location-dot field-icon"></i>
+          </div>
+          <span class="field-error-msg">Address is required.</span>
+        </div>
+      </div>
+
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input type="text" id="pincode-${i}" class="form-input has-icon" placeholder="Pincode" inputmode="numeric" maxlength="6">
+            <i class="fa-solid fa-map-pin field-icon"></i>
+          </div>
+          <span class="field-error-msg">Enter a valid 6-digit pincode.</span>
+        </div>
+
+        <div class="form-group">
+          <div class="input-wrapper">
+            <input type="text" id="districtCity-${i}" class="form-input has-icon" placeholder="City / District">
+            <i class="fa-solid fa-city field-icon"></i>
+          </div>
+          <span class="field-error-msg">City / District is required.</span>
+        </div>
+
+        <div class="form-group">
+          <input type="hidden" id="state-${i}">
+          <div class="custom-select-trigger" id="state-${i}Trigger" onclick="openDropdownModal('state-${i}')">
+            <span class="trigger-content">
+              <i class="fa-solid fa-map-location-dot field-icon-inline"></i>
+              <span class="placeholder-text" id="state-${i}Text">Select State</span>
+            </span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </div>
+          <span class="field-error-msg">This field is required.</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function generateLocationHeaderHtml(i, pos) {
+  const isPrimary = defaultLocationIndex === i;
+  const title = `<span class="location-title">Location ${pos + 1}</span>`;
+  const defaultMarker = `<label class="location-default-radio${isPrimary ? ' is-primary' : ''}">
+        <input type="radio" name="defaultLocation" value="${i}" ${isPrimary ? 'checked' : ''} onchange="setDefaultLocation(${i})">
+        <span>Set as Primary Location</span>
+      </label>`;
+  const removeBtn = !isPrimary
+    ? `<button type="button" class="location-remove-btn" onclick="removeClinicLocation(${i})" aria-label="Remove Location ${pos + 1}" title="Remove this location">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>`
+    : '';
+
+  return `<div class="location-header-left">${title}${defaultMarker}</div>${removeBtn}`;
+}
+
+function refreshLocationHeaders() {
+  // With only one location it's trivially the default, so the header
+  // (title, "Set as default" radio, remove button) is hidden entirely.
+  const multiple = locationIndices.length > 1;
+
+  locationIndices.forEach((i, pos) => {
+    const block = document.querySelector('.clinic-location-block[data-location-index="' + i + '"]');
+    if (!block) return;
+    const header = block.querySelector('.location-header');
+    if (!header) return;
+    header.innerHTML = multiple ? generateLocationHeaderHtml(i, pos) : '';
+    header.style.display = multiple ? '' : 'none';
+  });
+
+  const addBtn = document.getElementById('addLocationBtn');
+  if (addBtn) addBtn.style.display = locationIndices.length >= MAX_CLINIC_LOCATIONS ? 'none' : 'inline-flex';
+}
+
+function wireLocationFieldEvents(i) {
+  ['clinicName-' + i, 'clinicAddress-' + i, 'districtCity-' + i].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { markFieldInteracted(id); validateField(id); });
+    el.addEventListener('blur', () => { markFieldInteracted(id); validateField(id); });
+  });
+
+  const pincodeField = document.getElementById('pincode-' + i);
+  pincodeField.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    markFieldInteracted('pincode-' + i);
+    validateField('pincode-' + i);
+    if (this.value.length === 6) lookupPincode(this.value, i);
+  });
+  pincodeField.addEventListener('blur', () => { markFieldInteracted('pincode-' + i); validateField('pincode-' + i); });
+}
+
+function addClinicLocation() {
+  if (locationIndices.length >= MAX_CLINIC_LOCATIONS) return null;
+
+  const used = new Set(locationIndices);
+  let next = 0;
+  while (used.has(next)) next++;
+  locationIndices.push(next);
+
+  DROPDOWN_CONFIG['state-' + next] = DROPDOWN_CONFIG.state;
+
+  const container = document.getElementById('clinicLocationsContainer');
+  container.insertAdjacentHTML('beforeend', generateLocationBlockHtml(next));
+  wireLocationFieldEvents(next);
+  refreshLocationHeaders();
+
+  if (!isRestoringDraft) {
+    const block = document.querySelector('.clinic-location-block[data-location-index="' + next + '"]');
+    if (block) {
+      block.classList.add('location-enter');
+      block.addEventListener('animationend', () => block.classList.remove('location-enter'), { once: true });
+    }
+  }
+
+  validateForm();
+  persistDraft();
+  return next;
+}
+
+function removeClinicLocation(i) {
+  if (locationIndices.length <= 1) return;
+
+  const block = document.querySelector('.clinic-location-block[data-location-index="' + i + '"]');
+  const finish = () => {
+    locationIndices = locationIndices.filter(idx => idx !== i);
+    if (block) block.remove();
+
+    clinicLocationFieldIds(i).forEach(id => interactedFields.delete(id));
+    delete pincodeLookups[i];
+    delete pincodeLookupTokens[i];
+    delete DROPDOWN_CONFIG['state-' + i];
+
+    if (defaultLocationIndex === i) defaultLocationIndex = locationIndices[0];
+
+    refreshLocationHeaders();
+    validateForm();
+    persistDraft();
+  };
+
+  if (block) {
+    // Lock in the block's current height as an explicit pixel value so it
+    // can be transitioned down to 0 — you can't CSS-transition to/from "auto".
+    block.style.height = block.getBoundingClientRect().height + 'px';
+    block.classList.add('location-exit');
+    block.getBoundingClientRect(); // force layout so the height above "sticks" before collapsing
+    requestAnimationFrame(() => block.classList.add('location-exit-active'));
+    block.addEventListener('transitionend', finish, { once: true });
+  } else {
+    finish();
+  }
+}
+
+function setDefaultLocation(i) {
+  defaultLocationIndex = i;
+  refreshLocationHeaders();
+  persistDraft();
+}
+
+function collectClinicLocations() {
+  return locationIndices.map((i, pos) => ({
+    locationNumber: pos + 1,
+    clinicName: document.getElementById('clinicName-' + i).value,
+    clinicAddress: document.getElementById('clinicAddress-' + i).value,
+    pincode: document.getElementById('pincode-' + i).value,
+    districtCity: document.getElementById('districtCity-' + i).value,
+    state: document.getElementById('state-' + i).value,
+    isDefault: i === defaultLocationIndex
+  }));
+}
+
+function getRequiredFieldIds() {
+  const locationFields = [];
+  locationIndices.forEach(i => locationFields.push(...clinicLocationFieldIds(i)));
+  return REQUIRED_FIELDS.concat(locationFields);
+}
+
+/* Turns "pincode-2" into 2, or null for a non-location field id */
+function locationIndexOf(id) {
+  const match = /-(\d+)$/.exec(id);
+  return match ? Number(match[1]) : null;
+}
+
+/* Strips the "-<index>" suffix so shared validation logic can be
+   written once (e.g. "pincode-2" and "pincode" share the same rules) */
+function baseFieldName(id) {
+  const match = /^(.*)-(\d+)$/.exec(id);
+  return match ? match[1] : id;
+}
+
 /* -------------------------------------------------------
    Pincode -> City/District + State auto-fill (India Post API)
    ------------------------------------------------------- */
-let pincodeLookupToken = 0;
+const pincodeLookupTokens = {};
 
-// Single source of truth for the pincode lookup UI: which pin the state
+// One lookup-state object per location index: which pin the state
 // applies to, and whether it's mid-flight, failed, or settled.
-const pincodeLookup = { pin: null, status: 'idle' }; // status: 'idle' | 'loading' | 'not-found'
+const pincodeLookups = {}; // index -> { pin, status: 'idle' | 'loading' | 'not-found' }
 
-function renderPincodeLookup() {
-  const cityField = document.getElementById('districtCity');
-  const stateText = document.getElementById('stateText');
-  const loading = pincodeLookup.status === 'loading';
+function getPincodeLookup(i) {
+  if (!pincodeLookups[i]) pincodeLookups[i] = { pin: null, status: 'idle' };
+  return pincodeLookups[i];
+}
+
+function renderPincodeLookup(i) {
+  const lookup = getPincodeLookup(i);
+  const cityField = document.getElementById('districtCity-' + i);
+  const stateText = document.getElementById('state-' + i + 'Text');
+  const loading = lookup.status === 'loading';
 
   if (cityField) {
     if (loading) cityField.value = '';
@@ -446,57 +675,59 @@ function renderPincodeLookup() {
       stateText.textContent = 'Fetching...';
       stateText.classList.add('placeholder-text');
       stateText.classList.remove('selected-text');
-      document.getElementById('state').value = '';
+      document.getElementById('state-' + i).value = '';
     } else if (stateText.textContent === 'Fetching...') {
       stateText.textContent = 'Select State';
     }
   }
 
-  validateField('pincode', pincodeLookup.status === 'not-found');
+  validateField('pincode-' + i, lookup.status === 'not-found');
 }
 
-async function lookupPincode(pin) {
-  const token = ++pincodeLookupToken;
-  pincodeLookup.pin = pin;
-  pincodeLookup.status = 'loading';
-  renderPincodeLookup();
+async function lookupPincode(pin, i) {
+  const token = (pincodeLookupTokens[i] || 0) + 1;
+  pincodeLookupTokens[i] = token;
+  const lookup = getPincodeLookup(i);
+  lookup.pin = pin;
+  lookup.status = 'loading';
+  renderPincodeLookup(i);
 
   try {
     const res = await fetch('https://api.postalpincode.in/pincode/' + pin);
     if (!res.ok) {
-      pincodeLookup.status = 'not-found';
+      lookup.status = 'not-found';
       return;
     }
     const data = await res.json();
-    if (token !== pincodeLookupToken) return; // a newer lookup has started
+    if (pincodeLookupTokens[i] !== token) return; // a newer lookup has started
 
     const result = Array.isArray(data) ? data[0] : null;
     if (!result || result.Status !== 'Success' || !Array.isArray(result.PostOffice) || !result.PostOffice.length) {
-      pincodeLookup.status = 'not-found';
+      lookup.status = 'not-found';
       return;
     }
 
-    pincodeLookup.status = 'idle';
+    lookup.status = 'idle';
     const office = result.PostOffice[0];
 
-    const cityField = document.getElementById('districtCity');
+    const cityField = document.getElementById('districtCity-' + i);
     if (cityField && office.District) {
       cityField.value = office.District;
-      markFieldInteracted('districtCity');
-      validateField('districtCity');
+      markFieldInteracted('districtCity-' + i);
+      validateField('districtCity-' + i);
     }
 
     if (office.State) {
       const stateMatch = DROPDOWN_CONFIG.state.options
         .find(opt => opt.toLowerCase() === office.State.toLowerCase());
-      applySingleSelect('state', stateMatch || 'Other');
-      markFieldInteracted('state');
-      validateField('state');
+      applySingleSelect('state-' + i, stateMatch || 'Other');
+      markFieldInteracted('state-' + i);
+      validateField('state-' + i);
     }
   } catch (err) {
-    pincodeLookup.status = 'idle'; // network failure: leave fields as-is for manual entry
+    lookup.status = 'idle'; // network failure: leave fields as-is for manual entry
   } finally {
-    if (token === pincodeLookupToken) renderPincodeLookup();
+    if (pincodeLookupTokens[i] === token) renderPincodeLookup(i);
   }
 }
 
@@ -516,10 +747,7 @@ function restoreOnboardingDraft() {
 
   try {
     if (draft) {
-      const textIds = [
-        'firstName', 'email', 'mciRegdNo',
-        'clinicName', 'clinicAddress', 'pincode', 'districtCity'
-      ];
+      const textIds = ['firstName', 'email', 'mciRegdNo'];
       textIds.forEach(id => {
         if (typeof draft[id] === 'string') document.getElementById(id).value = draft[id];
       });
@@ -528,17 +756,41 @@ function restoreOnboardingDraft() {
       // (which sanitizes it) rather than straight into the textarea.
       if (typeof draft.aboutSection === 'string') setRteContent(draft.aboutSection);
 
-      ['gender', 'registrationCouncil', 'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience', 'medicalInstitute', 'state']
+      ['gender', 'medicalSpecialty', 'yearsExperience', 'medicalInstitute']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
+
+      if (Array.isArray(draft.clinicLocations) && draft.clinicLocations.length) {
+        // The form already has one blank location from initial load;
+        // add more to match the saved draft before filling in values.
+        while (locationIndices.length < draft.clinicLocations.length) addClinicLocation();
+
+        draft.clinicLocations.forEach((loc, pos) => {
+          const i = locationIndices[pos];
+          if (i === undefined) return;
+          document.getElementById('clinicName-' + i).value = loc.clinicName || '';
+          document.getElementById('clinicAddress-' + i).value = loc.clinicAddress || '';
+          document.getElementById('pincode-' + i).value = loc.pincode || '';
+          document.getElementById('districtCity-' + i).value = loc.districtCity || '';
+          if (loc.state) applySingleSelect('state-' + i, loc.state);
+          if (loc.isDefault) defaultLocationIndex = i;
+        });
+        refreshLocationHeaders();
+      }
 
       if (draft.medicalInstitute === 'Other' && typeof draft.otherMedicalInstitute === 'string') {
         document.getElementById('otherMedicalInstitute').value = draft.otherMedicalInstitute;
       }
 
-      if (Array.isArray(draft.qualifications)) {
-        MULTI_SELECTIONS.qualifications = draft.qualifications.slice();
-        syncMultiField('qualifications');
-      }
+      ['qualifications', 'medicalSubSpecialty', 'registrationCouncil'].forEach(fieldId => {
+        const draftValue = draft[fieldId];
+        if (Array.isArray(draftValue)) {
+          MULTI_SELECTIONS[fieldId] = draftValue.slice();
+          syncMultiField(fieldId);
+        } else if (typeof draftValue === 'string' && draftValue) {
+          MULTI_SELECTIONS[fieldId] = [draftValue];
+          syncMultiField(fieldId);
+        }
+      });
 
       if (draft.phoneIso2 && phoneInput && phoneInput.setCountry) {
         phoneInput.setCountry(draft.phoneIso2);
@@ -580,15 +832,13 @@ function openDropdownModal(fieldId) {
   const searchInput = document.getElementById('modalSearchInput');
   const modalIcon = document.getElementById('modalIcon');
   const modalTitleText = document.getElementById('modalTitleText');
-  const searchRow = document.getElementById('modalSearchRow');
-  const searchHint = document.getElementById('modalSearchHint');
+  const addRow = document.getElementById('modalAddRow');
 
   modalIcon.className = 'fa-solid ' + config.icon;
   modalTitleText.textContent = config.title;
   searchInput.value = '';
   searchInput.placeholder = config.placeholder || 'Search...';
-  searchHint.hidden = !config.allowCustom;
-  searchRow.classList.toggle('no-hint', !config.allowCustom);
+  addRow.classList.toggle('active', !!config.allowCustom);
 
   resetSearchBarMode();
 
@@ -631,8 +881,9 @@ function updateModalCloseButton() {
   const btn = document.getElementById('modalCloseBtn');
   if (!btn) return;
 
-  const showDone = currentDropdownField === 'qualifications'
-    && MULTI_SELECTIONS.qualifications.length > 0;
+  const config = currentDropdownField ? DROPDOWN_CONFIG[currentDropdownField] : null;
+  const showDone = !!config && config.multi
+    && MULTI_SELECTIONS[currentDropdownField].length > 0;
 
   btn.classList.toggle('modal-done-btn', showDone);
   btn.setAttribute('aria-label', showDone ? 'Done' : 'Close');
@@ -648,7 +899,26 @@ function handleModalBackdropClick(e) {
 function handleModalSearchInput(inputEl) {
   const config = DROPDOWN_CONFIG[currentDropdownField];
   if (!config) return;
+  if (searchBarInAddMode) {
+    updateSearchSaveButton(!!inputEl.value.trim());
+    return;
+  }
   renderModalOptions(config, inputEl.value);
+}
+
+function updateSearchSaveButton(show) {
+  const btn = document.getElementById('searchSaveBtn');
+  if (!btn) return;
+  btn.classList.toggle('visible', !!show);
+  btn.tabIndex = show ? 0 : -1;
+  btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+function handleSearchSaveClick() {
+  const config = DROPDOWN_CONFIG[currentDropdownField];
+  if (!config || !config.allowCustom) return;
+  const inputEl = document.getElementById('modalSearchInput');
+  addCustomFromSearch(currentDropdownField, config, inputEl.value);
 }
 
 function handleModalSearchKeydown(e) {
@@ -661,6 +931,11 @@ function handleModalSearchKeydown(e) {
   const inputEl = document.getElementById('modalSearchInput');
   const typed = inputEl.value.trim();
   if (!typed) return;
+
+  if (searchBarInAddMode) {
+    if (config.allowCustom) addCustomFromSearch(currentDropdownField, config, typed);
+    return;
+  }
 
   const match = config.options
     .map(normalizeOption)
@@ -704,6 +979,12 @@ function canonicalize(fieldId, text) {
 function addMultiValue(fieldId, value) {
   const selected = MULTI_SELECTIONS[fieldId];
   if (selected.some(v => dedupeKey(v) === dedupeKey(value))) return;
+
+  const config = DROPDOWN_CONFIG[fieldId];
+  if (config && config.maxSelections && selected.length >= config.maxSelections) {
+    selected.length = 0;
+  }
+
   selected.push(value);
   markFieldInteracted(fieldId);
   syncMultiField(fieldId);
@@ -746,16 +1027,27 @@ function syncMultiField(fieldId) {
   document.getElementById(fieldId).value = selected.join(', ');
   renderTriggerChips(fieldId);
   if (!isRestoringDraft) validateField(fieldId);
-  if (fieldId === 'qualifications') updateModalCloseButton();
+  if (fieldId === currentDropdownField) updateModalCloseButton();
 }
 
 function renderTriggerChips(fieldId) {
   const textEl = document.getElementById(fieldId + 'Text');
   const selected = MULTI_SELECTIONS[fieldId];
+  const config = DROPDOWN_CONFIG[fieldId];
 
   if (selected.length === 0) {
     textEl.className = 'placeholder-text';
-    textEl.textContent = DROPDOWN_CONFIG[fieldId].title.replace(/^Select /, '');
+    textEl.textContent = config.triggerLabel || config.title.replace(/^Select /, '');
+    return;
+  }
+
+  // Fields capped at one selection read like a normal single-select field
+  // (plain text), instead of the removable-chip look multi-select uses.
+  if (config.maxSelections === 1) {
+    textEl.className = 'selected-text';
+    textEl.textContent = selected[0];
+    const trigger = document.getElementById(fieldId + 'Trigger');
+    if (trigger) trigger.title = selected[0];
     return;
   }
 
@@ -877,10 +1169,20 @@ function addCustomFromSearch(fieldId, config, rawText) {
   }
 
   commitCustomEntries(fieldId, typed);
+  renderModalChips();
+
+  // Fields capped at one selection: return to the list view immediately
+  // instead of leaving the box open for further adds.
+  if (config.maxSelections && MULTI_SELECTIONS[fieldId].length >= config.maxSelections
+    && currentDropdownField === fieldId && searchBarInAddMode) {
+    toggleSearchAddMode();
+    return;
+  }
+
   const searchInput = document.getElementById('modalSearchInput');
   searchInput.value = '';
-  renderModalChips();
-  renderModalOptions(config, '');
+  updateSearchSaveButton(false);
+  if (!searchBarInAddMode) renderModalOptions(config, '');
   searchInput.focus();
 }
 
@@ -896,9 +1198,68 @@ function applySingleCustomValue(fieldId, value) {
   textEl.classList.add('selected-text');
 }
 
+let searchBarInAddMode = false;
+
 function resetSearchBarMode() {
+  searchBarInAddMode = false;
+
   const icon = document.getElementById('modalSearchIcon');
   if (icon) icon.className = 'fa-solid fa-magnifying-glass search-icon';
+
+  const toggleBtn = document.getElementById('modalAddToggleBtn');
+  const toggleIcon = document.getElementById('modalAddToggleIcon');
+  const toggleLabel = document.getElementById('modalAddToggleLabel');
+  if (toggleBtn) toggleBtn.classList.remove('active');
+  if (toggleIcon) toggleIcon.className = 'fa-solid fa-plus';
+  if (toggleLabel) toggleLabel.textContent = 'Add';
+
+  const list = document.getElementById('modalOptionsList');
+  if (list) list.hidden = false;
+
+  const searchBox = document.getElementById('modalSearchBox');
+  if (searchBox) searchBox.classList.remove('add-mode');
+
+  updateSearchSaveButton(false);
+}
+
+/* Switches the search bar between "search the list" and "type a new entry" */
+function toggleSearchAddMode() {
+  const config = DROPDOWN_CONFIG[currentDropdownField];
+  if (!config) return;
+
+  searchBarInAddMode = !searchBarInAddMode;
+
+  const searchInput = document.getElementById('modalSearchInput');
+  const icon = document.getElementById('modalSearchIcon');
+  const toggleBtn = document.getElementById('modalAddToggleBtn');
+  const toggleIcon = document.getElementById('modalAddToggleIcon');
+  const toggleLabel = document.getElementById('modalAddToggleLabel');
+  const list = document.getElementById('modalOptionsList');
+  const searchBox = document.getElementById('modalSearchBox');
+
+  searchInput.value = '';
+  updateSearchSaveButton(false);
+
+  if (searchBarInAddMode) {
+    searchInput.placeholder = config.addPlaceholder || 'Type to add';
+    icon.className = 'fa-solid fa-pen search-icon';
+    toggleBtn.classList.add('active');
+    toggleIcon.className = 'fa-solid fa-xmark';
+    toggleLabel.textContent = 'Cancel';
+    list.hidden = true;
+    searchBox.classList.add('add-mode');
+  } else {
+    searchInput.placeholder = config.placeholder || 'Search...';
+    icon.className = 'fa-solid fa-magnifying-glass search-icon';
+    toggleBtn.classList.remove('active');
+    toggleIcon.className = 'fa-solid fa-plus';
+    toggleLabel.textContent = 'Add';
+    list.hidden = false;
+    searchBox.classList.remove('add-mode');
+    renderModalOptions(config, '');
+  }
+
+  searchInput.focus();
 }
 
 /* -------------------------------------------------------
@@ -933,10 +1294,6 @@ function renderModalOptions(config, filterText) {
       return filter.length > 0 && acronym.startsWith(filter);
     });
 
-  // Reveal the inline "+" button whenever what's typed isn't an exact known option
-  const hasExactMatch = optionList.some(opt => dedupeKey(opt.label) === dedupeKey(query));
-  updateInlineAddButton(!!(config.allowCustom && query && !hasExactMatch), query);
-
   if (filtered.length === 0) {
     const li = document.createElement('li');
     li.className = 'no-results';
@@ -962,23 +1319,6 @@ function renderModalOptions(config, filterText) {
   });
 }
 
-/* Inline "+" button inside the search box — the mouse-driven equivalent of Enter */
-function updateInlineAddButton(show, query) {
-  const btn = document.getElementById('searchInlineAddBtn');
-  if (!btn) return;
-  btn.classList.toggle('visible', !!show);
-  btn.tabIndex = show ? 0 : -1;
-  btn.setAttribute('aria-hidden', show ? 'false' : 'true');
-  btn.title = show ? 'Add "' + query + '"' : '';
-}
-
-function handleInlineAddClick() {
-  const config = DROPDOWN_CONFIG[currentDropdownField];
-  if (!config || !config.allowCustom) return;
-  const inputEl = document.getElementById('modalSearchInput');
-  addCustomFromSearch(currentDropdownField, config, inputEl.value);
-}
-
 /* -------------------------------------------------------
    Single-select commit
    ------------------------------------------------------- */
@@ -992,8 +1332,7 @@ function selectDropdownOption(value, label) {
    ------------------------------------------------------- */
 const REQUIRED_FIELDS = [
   'firstName', 'email', 'phone', 'gender', 'registrationCouncil', 'mciRegdNo',
-  'medicalSpecialty', 'yearsExperience', 'qualifications',
-  'clinicName', 'clinicAddress', 'pincode', 'districtCity', 'state'
+  'medicalSpecialty', 'yearsExperience', 'qualifications'
 ];
 
 
@@ -1002,7 +1341,7 @@ function getFieldError(id) {
   if (!el) return '';
   const value = el.value.trim();
 
-  switch (id) {
+  switch (baseFieldName(id)) {
     case 'gender':
     case 'registrationCouncil':
     case 'medicalSpecialty':
@@ -1052,11 +1391,14 @@ function getFieldError(id) {
       if (!value) return 'Clinic address is required.';
       break;
 
-    case 'pincode':
+    case 'pincode': {
       if (!value) return 'Pincode is required.';
       if (!/^\d{6}$/.test(value)) return 'Enter a valid 6-digit pincode.';
-      if (pincodeLookup.status === 'not-found' && value === pincodeLookup.pin) return 'Pincode not found.';
+      const idx = locationIndexOf(id);
+      const lookup = idx !== null ? pincodeLookups[idx] : null;
+      if (lookup && lookup.status === 'not-found' && value === lookup.pin) return 'Pincode not found.';
       break;
+    }
 
     case 'districtCity':
       if (!value) return 'District / City is required.';
@@ -1118,7 +1460,7 @@ function clearFieldError(id) {
 function validateForm() {
   let isValid = true;
 
-  REQUIRED_FIELDS.forEach(id => {
+  getRequiredFieldIds().forEach(id => {
     if (getFieldError(id)) isValid = false;
   });
 
@@ -1142,7 +1484,7 @@ function handleOnboardingSubmit(event) {
   event.preventDefault();
 
   // Force-validate every field to surface any hidden errors
-  const idsToCheck = REQUIRED_FIELDS.concat(['otherMedicalInstitute', 'aboutSection']);
+  const idsToCheck = getRequiredFieldIds().concat(['otherMedicalInstitute', 'aboutSection']);
   let firstInvalid = null;
   idsToCheck.forEach(id => {
     markFieldInteracted(id);
@@ -1175,20 +1517,24 @@ function handleOnboardingSubmit(event) {
     email: document.getElementById('email').value.trim(),
     phone: phoneInput.getNumber(),
     gender: document.getElementById('gender').value,
-    registrationCouncil: document.getElementById('registrationCouncil').value,
+    registrationCouncil: MULTI_SELECTIONS.registrationCouncil.slice(),
     mciRegdNo: document.getElementById('mciRegdNo').value.trim(),
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
-    medicalSubSpecialty: document.getElementById('medicalSubSpecialty').value,
+    medicalSubSpecialty: MULTI_SELECTIONS.medicalSubSpecialty.slice(),
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
     medicalInstitute: document.getElementById('medicalInstitute').value === 'Other'
       ? document.getElementById('otherMedicalInstitute').value.trim()
       : document.getElementById('medicalInstitute').value,
-    clinicName: document.getElementById('clinicName').value.trim(),
-    clinicAddress: document.getElementById('clinicAddress').value.trim(),
-    pincode: document.getElementById('pincode').value.trim(),
-    districtCity: document.getElementById('districtCity').value.trim(),
-    state: document.getElementById('state').value,
+    clinicLocations: collectClinicLocations().map(loc => ({
+      locationNumber: loc.locationNumber,
+      clinicName: loc.clinicName.trim(),
+      clinicAddress: loc.clinicAddress.trim(),
+      pincode: loc.pincode.trim(),
+      districtCity: loc.districtCity.trim(),
+      state: loc.state,
+      isDefault: loc.isDefault
+    })),
     // About Section is rich text. It is sent twice:
     //   aboutSection     - safe HTML (bold / italic / bullets kept)
     //   aboutSectionText - the same words with no formatting, for

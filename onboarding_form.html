@@ -225,58 +225,15 @@
             <div class="section-block">
               <div class="section-title-row">
                 <div class="section-title"><i class="fa-solid fa-hospital"></i> Hospital/Clinic Details</div>
+                <button type="button" class="section-add-btn" id="addLocationBtn" onclick="addClinicLocation()" title="Add another location">
+                  <i class="fa-solid fa-plus"></i>
+                  <span>Add</span>
+                </button>
               </div>
               <hr class="section-divider">
 
-              <div class="form-row form-row-2">
-                <div class="form-group">
-                  <div class="input-wrapper">
-                    <input type="text" id="clinicName" class="form-input has-icon"
-                      placeholder="Hospital/Clinic Name">
-                    <i class="fa-solid fa-hospital field-icon"></i>
-                  </div>
-                  <span class="field-error-msg">Hospital/Clinic name is required.</span>
-                </div>
-
-                <div class="form-group">
-                  <div class="input-wrapper">
-                    <input type="text" id="clinicAddress" class="form-input has-icon"
-                      placeholder="Address (Street)">
-                    <i class="fa-solid fa-location-dot field-icon"></i>
-                  </div>
-                  <span class="field-error-msg">Address is required.</span>
-                </div>
-              </div>
-
-              <div class="form-row form-row-3">
-                <div class="form-group">
-                  <div class="input-wrapper">
-                    <input type="text" id="pincode" class="form-input has-icon" placeholder="Pincode" inputmode="numeric" maxlength="6">
-                    <i class="fa-solid fa-map-pin field-icon"></i>
-                  </div>
-                  <span class="field-error-msg">Enter a valid 6-digit pincode.</span>
-                </div>
-
-                <div class="form-group">
-                  <div class="input-wrapper">
-                    <input type="text" id="districtCity" class="form-input has-icon" placeholder="City / District">
-                    <i class="fa-solid fa-city field-icon"></i>
-                  </div>
-                  <span class="field-error-msg">City / District is required.</span>
-                </div>
-
-                <div class="form-group">
-                  <input type="hidden" id="state">
-                  <div class="custom-select-trigger" id="stateTrigger" onclick="openDropdownModal('state')">
-                    <span class="trigger-content">
-                      <i class="fa-solid fa-map-location-dot field-icon-inline"></i>
-                      <span class="placeholder-text" id="stateText">Select State</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-                  </div>
-                  <span class="field-error-msg">This field is required.</span>
-                </div>
-              </div>
+              <!-- Location blocks (up to 3) are rendered here by onboarding_form.js -->
+              <div id="clinicLocationsContainer"></div>
             </div>
 
             <!-- ============= ABOUT SECTION ============= -->
@@ -429,19 +386,27 @@
         </button>
       </div>
 
+      <!-- Add-toggle row: switches the search bar into a dedicated "add new" field -->
+      <div class="modal-add-row" id="modalAddRow">
+        <p class="modal-search-hint" id="modalSearchHint"><i class="fa-solid fa-circle-info"></i> Can't find it in the list? Click on Add</p>
+        <button type="button" class="modal-add-toggle-btn" id="modalAddToggleBtn" onclick="toggleSearchAddMode()">
+          <i class="fa-solid fa-plus" id="modalAddToggleIcon"></i>
+          <span id="modalAddToggleLabel">Add</span>
+        </button>
+      </div>
+
       <!-- Modal Search Bar (doubles as the add field for custom entries) -->
       <div class="modal-search-row" id="modalSearchRow">
         <div class="modal-search-box" id="modalSearchBox">
           <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
           <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
             oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
-          <button type="button" class="search-inline-add-btn" id="searchInlineAddBtn"
-            tabindex="-1" aria-hidden="true" onclick="handleInlineAddClick()">
-            <i class="fa-solid fa-plus"></i> Add
+          <button type="button" class="search-save-btn" id="searchSaveBtn"
+            tabindex="-1" aria-hidden="true" onclick="handleSearchSaveClick()">
+            <i class="fa-solid fa-check"></i> Save
           </button>
         </div>
       </div>
-      <p class="modal-search-hint" id="modalSearchHint"><i class="fa-solid fa-circle-info"></i> Can't find it in the list? Just type it in to add it.</p>
 
       <!-- Selected Chips (multi-select only) -->
       <div class="modal-chips-row" id="modalChipsRow"></div>
