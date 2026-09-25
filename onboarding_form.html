@@ -63,7 +63,8 @@
               </div>
               <hr class="section-divider">
 
-              <!-- Profile Photo Upload -->
+              <!-- Profile Photo + identity fields (side by side on desktop, stacked on mobile) -->
+              <div class="personal-header">
               <div class="photo-upload-row">
                 <label class="avatar-upload" for="profilePhotoInput" title="Upload profile photo">
                   <div class="avatar-circle" id="avatarPreview"><i class="fa-solid fa-user"></i></div>
@@ -74,16 +75,16 @@
                 </label>
                 <div class="photo-upload-text">
                   <p class="photo-upload-title">Upload Profile Photo</p>
-                  <p class="photo-upload-desc">A clear headshot builds patient trust.<br>JPG or PNG, min
+                  <p class="photo-upload-desc"><span class="photo-upload-hint">A clear headshot builds trust.<br></span>JPG or PNG, min
                     400&times;400px.</p>
                   <p class="photo-upload-desc field-error-msg" id="photoError" style="display:none;"></p>
                 </div>
               </div>
 
-              <div class="form-row form-row-3">
+              <div class="form-row form-row-2 personal-header-fields">
                 <div class="form-group">
                   <div class="input-wrapper">
-                    <input type="text" id="salutation" class="form-input has-icon readonly-field" value="Doctor" readonly>
+                    <input type="text" id="salutation" class="form-input has-icon readonly-field" value="Doctor (Dr.)" readonly>
                     <i class="fa-solid fa-user-doctor field-icon"></i>
                   </div>
                 </div>
@@ -103,13 +104,15 @@
                   </div>
                   <span class="field-error-msg">Enter a valid email address.</span>
                 </div>
-              </div>
 
-              <div class="form-row form-row-3">
                 <div class="form-group">
                   <input type="tel" id="phone" class="form-input" placeholder="Phone Number">
                   <span class="field-error-msg">Phone number is required.</span>
                 </div>
+              </div>
+              </div>
+
+              <div class="form-row form-row-2 personal-row-2">
 
                 <div class="form-group">
                   <input type="hidden" id="gender">
@@ -128,6 +131,7 @@
                     <input type="hidden" id="registrationCouncil">
                     <div class="custom-select-trigger council-trigger-compact" id="registrationCouncilTrigger" onclick="openDropdownModal('registrationCouncil')">
                       <span class="trigger-content">
+                        <i class="fa-solid fa-building-columns field-icon-inline"></i>
                         <span class="placeholder-text" id="registrationCouncilText">Council</span>
                       </span>
                       <i class="fa-solid fa-chevron-down dropdown-arrow"></i>

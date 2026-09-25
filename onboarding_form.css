@@ -572,7 +572,7 @@ body {
 }
 
 .council-trigger-compact .trigger-content {
-  gap: 4px;
+  gap: 8px;
   overflow: hidden;
 }
 
@@ -1703,7 +1703,7 @@ body {
   width: 92px;
   height: 92px;
   border-radius: 50%;
-  border: 2px dashed #CBD5E1;
+  border: 2px dashed #94A3B8;
   background: #F8FAFC;
   display: flex;
   align-items: center;
@@ -1757,12 +1757,73 @@ body {
 
 .photo-upload-desc {
   font-size: 16px;
-  color: #334155;
+  color: #1E293B;
   line-height: 1.5;
 }
 
 .photo-upload-desc.field-error-msg {
   margin-top: 6px;
+}
+
+/* Desktop/tablet: photo card on the left, identity fields in a 2x2 grid on the right.
+   Mobile (<=640px) keeps the original stacked layout. */
+@media (min-width: 641px) {
+  .personal-header {
+    display: grid;
+    grid-template-columns: 305px 1fr;
+    gap: 10px;
+    align-items: stretch;
+    margin-bottom: 12px;
+  }
+
+  .personal-header .photo-upload-row {
+    margin-bottom: 0;
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  .personal-header .avatar-circle {
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
+  }
+
+  .personal-header .avatar-camera-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+    border-width: 2px;
+  }
+
+  .personal-header .photo-upload-title {
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+
+  .personal-header .photo-upload-desc {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .personal-header .photo-upload-row {
+    height: 100%;
+    padding: 10px 18px;
+    gap: 16px;
+  }
+
+  .personal-header-fields {
+    margin-bottom: 0;
+  }
+
+  /* Gender matches the photo card's width; Council/Regd. No. line up under the 2x2 grid */
+  .personal-row-2 {
+    grid-template-columns: 305px 1fr;
+  }
+
+  .personal-row-2 .regd-no-combo {
+    grid-column: auto;
+    gap: 10px;
+  }
 }
 
 /* ---------------------------------------------------------
