@@ -104,9 +104,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      photoError.textContent = 'Please upload a JPG or PNG image.';
+    if (!file.type.startsWith('image/')) {
+      photoError.textContent = 'Please upload an image file.';
       photoError.style.display = 'block';
       this.value = '';
       return;
@@ -115,13 +114,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = function () {
-      if (img.width < 400 || img.height < 400) {
-        photoError.textContent = 'Image must be at least 400×400px.';
-        photoError.style.display = 'block';
-        photoInput.value = '';
-        URL.revokeObjectURL(objectUrl);
-        return;
-      }
       const dataUrl = compressImageForStorage(img);
       URL.revokeObjectURL(objectUrl);
       applyProfilePhoto(dataUrl);
