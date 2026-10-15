@@ -143,11 +143,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // Note: 'aboutSection' is not listed here. It is a hidden textarea fed by
   // the rich text editor, which runs its own validation via syncRteToTextarea.
   const allFieldIds = [
-    'firstName', 'email', 'gender', 'registrationCouncil', 'mciRegdNo',
-    'medicalSpecialty', 'medicalSubSpecialty', 'yearsExperience',
-    'qualifications',
+    'firstName', 'email', 'gender', 'registrationCouncil', 'stateCouncil', 'mciRegdNo',
+    'medicalSpecialty', 'medicalSubSpecialty',
+    'qualifications', 'registrationYear', 'fellowship',
     'medicalInstitute', 'otherMedicalInstitute'
   ];
+
+  const fellowshipEl = document.getElementById('fellowship');
+  fellowshipEl.addEventListener('input', autoGrowFellowship);
+  // Enter would add a line break to a single-line answer, so block it
+  fellowshipEl.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
 
   allFieldIds.forEach(id => {
     const el = document.getElementById(id);
@@ -175,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initRichTextEditor();
 
   restoreOnboardingDraft();
+  autoGrowFellowship();
 
   /* Initial pass */
   validateForm();
@@ -194,14 +200,18 @@ const DROPDOWN_CONFIG = {
   },
   registrationCouncil: {
     title: 'Select Registration Council',
-    triggerLabel: 'Council',
     icon: 'fa-landmark',
-    multi: true,
-    maxSelections: 1,
-    allowCustom: true,
-    placeholder: 'Council',
-    addPlaceholder: 'Add your registration council',
-    options: ['MCI', 'DCI']
+    // The menu shows the full form; the field itself shows only the short name
+    options: [
+      { value: 'NMC', label: 'NMC (National Medical Commission)', triggerLabel: 'NMC' },
+      { value: 'DCI', label: 'DCI (Dental Council of India)', triggerLabel: 'DCI' }
+    ]
+  },
+  // Options are filled in by updateStateCouncil once NMC or DCI is chosen
+  stateCouncil: {
+    title: 'Select State Council',
+    icon: 'fa-landmark',
+    options: []
   },
   medicalSpecialty: {
     title: 'Select Medical Specialty',
@@ -226,11 +236,6 @@ const DROPDOWN_CONFIG = {
       'Maternal-Fetal Medicine', 'Retina & Vitreous'
     ]
   },
-  yearsExperience: {
-    title: 'Years Of Experience',
-    icon: 'fa-briefcase',
-    options: buildYearsExperienceOptions()
-  },
   qualifications: {
     title: 'Select Qualifications',
     icon: 'fa-graduation-cap',
@@ -244,12 +249,22 @@ const DROPDOWN_CONFIG = {
       'FICS', 'MRCOG', 'FRCR', 'PhD'
     ]
   },
+  registrationYear: {
+    title: 'Year of Registration',
+    icon: 'fa-calendar-check',
+    options: buildRegistrationYearOptions()
+  },
   medicalInstitute: {
     title: 'Select Medical Institute',
     icon: 'fa-building-columns',
     options: [
       'AIIMS Delhi', 'CMC Vellore', 'KEM Hospital Mumbai', 'JIPMER',
-      'Grant Medical College', 'Maulana Azad Medical College', 'Other'
+      'Grant Medical College', 'Maulana Azad Medical College',
+      'All India Institute of Medical Sciences, New Delhi',
+      'Postgraduate Institute of Medical Education and Research, Chandigarh',
+      'Jawaharlal Institute of Postgraduate Medical Education and Research, Puducherry',
+      'Sanjay Gandhi Postgraduate Institute of Medical Sciences, Lucknow',
+      'Other'
     ],
     otherGroupId: 'otherMedicalInstituteGroup',
     otherInputId: 'otherMedicalInstitute'
@@ -274,6 +289,82 @@ function buildYearsExperienceOptions() {
   return options;
 }
 
+const STATE_COUNCILS = {
+  NMC: [
+    'Andhra Pradesh Medical Council', 'Assam Medical Council', 'Bihar Medical Council',
+    'Chhattisgarh Medical Council', 'Delhi Medical Council', 'Goa Medical Council',
+    'Gujarat Medical Council', 'Haryana Medical Council', 'Karnataka Medical Council',
+    'Kerala State Medical Council', 'Madhya Pradesh Medical Council', 'Maharashtra Medical Council',
+    'Odisha Council of Medical Registration', 'Punjab Medical Council', 'Rajasthan Medical Council',
+    'Tamil Nadu Medical Council', 'Telangana State Medical Council', 'Uttar Pradesh Medical Council',
+    'Uttarakhand Medical Council', 'West Bengal Medical Council'
+  ],
+  DCI: [
+    'Andhra Pradesh State Dental Council', 'Delhi Dental Council', 'Gujarat State Dental Council',
+    'Karnataka State Dental Council', 'Kerala State Dental Council', 'Madhya Pradesh Dental Council',
+    'Maharashtra State Dental Council', 'Punjab Dental Council', 'Rajasthan Dental Council',
+    'Tamil Nadu Dental Council', 'Telangana State Dental Council', 'Uttar Pradesh Dental Council',
+    'West Bengal Dental Council'
+  ]
+};
+
+/* State council stays greyed out until NMC / DCI is chosen, and its list
+   depends on which one was picked. Changing the council clears the old pick. */
+function updateStateCouncil(council, keepValue) {
+  const trigger = document.getElementById('stateCouncilTrigger');
+  const hidden = document.getElementById('stateCouncil');
+  const text = document.getElementById('stateCouncilText');
+
+  DROPDOWN_CONFIG.stateCouncil.options = STATE_COUNCILS[council] || [];
+  trigger.classList.toggle('disabled', !council);
+
+  if (!keepValue) {
+    hidden.value = '';
+    text.textContent = 'State council';
+    text.classList.remove('selected-text');
+    text.classList.add('placeholder-text');
+    clearFieldError('stateCouncil');
+  }
+}
+
+/* Years of Experience is not chosen by the doctor; it is worked out from
+   the Year of Registration and shown in a read-only field. */
+function updateYearsExperience(registrationYear) {
+  const hidden = document.getElementById('yearsExperience');
+  const display = document.getElementById('yearsExperienceDisplay');
+  if (!registrationYear) {
+    hidden.value = '';
+    display.value = '';
+    return;
+  }
+  const years = new Date().getFullYear() - Number(registrationYear);
+  const value = years < 1 ? 'less-than-1' : years > 40 ? '40+' : String(years);
+  const match = buildYearsExperienceOptions().find(opt => opt.value === value);
+  hidden.value = value;
+  display.value = match.label;
+}
+
+function buildRegistrationYearOptions() {
+  const options = [];
+  for (let year = new Date().getFullYear(); year >= 1950; year--) {
+    options.push({ value: String(year), label: String(year) });
+  }
+  return options;
+}
+
+function autoGrowFellowship() {
+  const el = document.getElementById('fellowship');
+  // Resetting the height to measure the text would briefly shrink the page
+  // and make it jump. Pin the wrapper at its current height while measuring
+  // so the layout around the box never moves.
+  const wrapper = el.parentElement;
+  wrapper.style.minHeight = wrapper.offsetHeight + 'px';
+  el.style.height = 'auto';
+  const newHeight = el.scrollHeight + (el.offsetHeight - el.clientHeight);
+  el.style.height = newHeight + 'px';
+  wrapper.style.minHeight = '';
+}
+
 let currentDropdownField = null;
 let aboutEditMode = false;
 let aboutOriginalValue = '';
@@ -281,8 +372,7 @@ let aboutOriginalValue = '';
 /* Selected values for multi-select fields, keyed by field id */
 const MULTI_SELECTIONS = {
   qualifications: [],
-  medicalSubSpecialty: [],
-  registrationCouncil: []
+  medicalSubSpecialty: []
 };
 
 function normalizeOption(opt) {
@@ -312,12 +402,15 @@ function collectDraft() {
     phoneIso2: country && country.iso2 ? country.iso2 : 'in',
     phoneE164,
     gender: document.getElementById('gender').value,
-    registrationCouncil: MULTI_SELECTIONS.registrationCouncil.slice(),
+    registrationCouncil: document.getElementById('registrationCouncil').value,
+    stateCouncil: document.getElementById('stateCouncil').value,
     mciRegdNo: document.getElementById('mciRegdNo').value,
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
     medicalSubSpecialty: MULTI_SELECTIONS.medicalSubSpecialty.slice(),
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
+    registrationYear: document.getElementById('registrationYear').value,
+    fellowship: document.getElementById('fellowship').value,
     medicalInstitute: document.getElementById('medicalInstitute').value,
     otherMedicalInstitute: document.getElementById('otherMedicalInstitute').value,
     clinicLocations: collectClinicLocations(),
@@ -358,10 +451,30 @@ function persistProfilePhoto(dataUrl) {
   }
 }
 
+function hasProfilePhoto() {
+  return !!document.querySelector('#avatarPreview img');
+}
+
+/* Shows the missing-photo error and scrolls the avatar into view */
+function flagMissingProfilePhoto() {
+  const avatarPreview = document.getElementById('avatarPreview');
+  const photoError = document.getElementById('photoError');
+  avatarPreview.classList.add('error');
+  photoError.textContent = 'Please upload a profile photo.';
+  photoError.style.display = 'block';
+  avatarPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function applyProfilePhoto(dataUrl) {
   const avatarPreview = document.getElementById('avatarPreview');
   if (!avatarPreview || !dataUrl) return;
   avatarPreview.innerHTML = '';
+  avatarPreview.classList.remove('error');
+  const photoError = document.getElementById('photoError');
+  if (photoError) {
+    photoError.style.display = 'none';
+    photoError.textContent = '';
+  }
   const img = document.createElement('img');
   img.src = dataUrl;
   img.alt = 'Profile preview';
@@ -399,12 +512,17 @@ function applySingleSelect(fieldId, value, options) {
   const match = config.options
     .map(normalizeOption)
     .find(opt => String(opt.value) === String(value));
-  const label = match ? match.label : value;
+  const label = match ? (match.triggerLabel || match.label) : value;
 
   hiddenInput.value = value;
   textEl.textContent = label;
   textEl.classList.remove('placeholder-text');
   textEl.classList.add('selected-text');
+
+  if (fieldId === 'registrationYear') updateYearsExperience(value);
+  if (fieldId === 'registrationCouncil') {
+    updateStateCouncil(value, options && options.keepDependent);
+  }
 
   if (config.otherGroupId) {
     const group = document.getElementById(config.otherGroupId);
@@ -747,7 +865,7 @@ function restoreOnboardingDraft() {
 
   try {
     if (draft) {
-      const textIds = ['firstName', 'email', 'mciRegdNo'];
+      const textIds = ['firstName', 'email', 'mciRegdNo', 'fellowship'];
       textIds.forEach(id => {
         if (typeof draft[id] === 'string') document.getElementById(id).value = draft[id];
       });
@@ -756,8 +874,19 @@ function restoreOnboardingDraft() {
       // (which sanitizes it) rather than straight into the textarea.
       if (typeof draft.aboutSection === 'string') setRteContent(draft.aboutSection);
 
-      ['gender', 'medicalSpecialty', 'yearsExperience', 'medicalInstitute']
+      // Years of Experience is recalculated from registrationYear here
+      ['gender', 'medicalSpecialty', 'registrationYear', 'medicalInstitute']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
+
+      // Older drafts stored the council as a list (and as "MCI", now NMC)
+      let savedCouncil = Array.isArray(draft.registrationCouncil)
+        ? draft.registrationCouncil[0]
+        : draft.registrationCouncil;
+      if (savedCouncil === 'MCI') savedCouncil = 'NMC';
+      applySingleSelect('registrationCouncil', savedCouncil || '');
+      if (savedCouncil && draft.stateCouncil) {
+        applySingleSelect('stateCouncil', draft.stateCouncil);
+      }
 
       if (Array.isArray(draft.clinicLocations) && draft.clinicLocations.length) {
         // The form already has one blank location from initial load;
@@ -781,7 +910,7 @@ function restoreOnboardingDraft() {
         document.getElementById('otherMedicalInstitute').value = draft.otherMedicalInstitute;
       }
 
-      ['qualifications', 'medicalSubSpecialty', 'registrationCouncil'].forEach(fieldId => {
+      ['qualifications', 'medicalSubSpecialty'].forEach(fieldId => {
         const draftValue = draft[fieldId];
         if (Array.isArray(draftValue)) {
           MULTI_SELECTIONS[fieldId] = draftValue.slice();
@@ -825,6 +954,9 @@ function dedupeKey(text) {
 function openDropdownModal(fieldId) {
   const config = DROPDOWN_CONFIG[fieldId];
   if (!config) return;
+
+  // A greyed-out field (State council before a council is picked) can't be opened
+  if (document.getElementById(fieldId + 'Trigger').classList.contains('disabled')) return;
 
   currentDropdownField = fieldId;
 
@@ -1367,8 +1499,8 @@ function selectDropdownOption(value, label) {
    Field-level validation
    ------------------------------------------------------- */
 const REQUIRED_FIELDS = [
-  'firstName', 'email', 'phone', 'gender', 'registrationCouncil', 'mciRegdNo',
-  'medicalSpecialty', 'yearsExperience', 'qualifications'
+  'firstName', 'email', 'phone', 'gender', 'registrationCouncil', 'stateCouncil', 'mciRegdNo',
+  'medicalSpecialty', 'qualifications', 'registrationYear'
 ];
 
 
@@ -1380,8 +1512,10 @@ function getFieldError(id) {
   switch (baseFieldName(id)) {
     case 'gender':
     case 'registrationCouncil':
+    case 'stateCouncil':
     case 'medicalSpecialty':
     case 'yearsExperience':
+    case 'registrationYear':
     case 'state':
       if (!value) return 'This field is required.';
       break;
@@ -1505,6 +1639,8 @@ function validateForm() {
 
   if (getFieldError('aboutSection')) isValid = false;
 
+  if (!hasProfilePhoto()) isValid = false;
+
   const agreeTerms = document.getElementById('agreeTerms');
   if (!agreeTerms.checked) isValid = false;
 
@@ -1534,6 +1670,12 @@ function handleOnboardingSubmit(event) {
     }
   });
 
+  // The photo sits at the top of the form, so it is flagged first
+  if (!hasProfilePhoto()) {
+    flagMissingProfilePhoto();
+    return;
+  }
+
   if (!validateForm()) {
     if (firstInvalid) firstInvalid.focus();
     return;
@@ -1553,12 +1695,15 @@ function handleOnboardingSubmit(event) {
     email: document.getElementById('email').value.trim(),
     phone: phoneInput.getNumber(),
     gender: document.getElementById('gender').value,
-    registrationCouncil: MULTI_SELECTIONS.registrationCouncil.slice(),
+    registrationCouncil: document.getElementById('registrationCouncil').value,
+    stateCouncil: document.getElementById('stateCouncil').value,
     mciRegdNo: document.getElementById('mciRegdNo').value.trim(),
     medicalSpecialty: document.getElementById('medicalSpecialty').value,
     medicalSubSpecialty: MULTI_SELECTIONS.medicalSubSpecialty.slice(),
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
+    registrationYear: document.getElementById('registrationYear').value,
+    fellowship: document.getElementById('fellowship').value.trim(),
     medicalInstitute: document.getElementById('medicalInstitute').value === 'Other'
       ? document.getElementById('otherMedicalInstitute').value.trim()
       : document.getElementById('medicalInstitute').value,

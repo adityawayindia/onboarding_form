@@ -132,19 +132,59 @@
                     <div class="custom-select-trigger council-trigger-compact" id="registrationCouncilTrigger" onclick="openDropdownModal('registrationCouncil')">
                       <span class="trigger-content">
                         <i class="fa-solid fa-building-columns field-icon-inline"></i>
-                        <span class="placeholder-text" id="registrationCouncilText">Council</span>
+                        <span class="placeholder-text" id="registrationCouncilText">NMC / DCI</span>
                       </span>
                       <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <span class="field-error-msg">Required.</span>
                   </div>
 
+                  <!-- Greyed out until NMC / DCI is chosen -->
                   <div class="form-group regdno-part">
-                    <div class="input-wrapper">
-                      <input type="text" id="mciRegdNo" class="form-input has-icon" placeholder="Regd. No.">
-                      <i class="fa-solid fa-hashtag field-icon"></i>
+                    <input type="hidden" id="stateCouncil">
+                    <div class="custom-select-trigger council-trigger-compact disabled" id="stateCouncilTrigger" onclick="openDropdownModal('stateCouncil')">
+                      <span class="trigger-content">
+                        <i class="fa-solid fa-landmark field-icon-inline"></i>
+                        <span class="placeholder-text" id="stateCouncilText">State council</span>
+                      </span>
+                      <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     </div>
-                    <span class="field-error-msg">Registration number is required.</span>
+                    <span class="field-error-msg">Required.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row form-row-3 personal-row-3">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <input type="text" id="mciRegdNo" class="form-input has-icon" placeholder="Regd. No.">
+                    <i class="fa-solid fa-hashtag field-icon"></i>
+                  </div>
+                  <span class="field-error-msg">Registration number is required.</span>
+                </div>
+
+                <!-- Year of Registration + auto-filled Years of Experience share one column -->
+                <div class="reg-exp-combo">
+                  <div class="form-group">
+                    <input type="hidden" id="registrationYear">
+                    <div class="custom-select-trigger" id="registrationYearTrigger" onclick="openDropdownModal('registrationYear')">
+                      <span class="trigger-content">
+                        <i class="fa-solid fa-calendar-check field-icon-inline"></i>
+                        <span class="placeholder-text" id="registrationYearText">Regd. Year</span>
+                      </span>
+                      <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <span class="field-error-msg">This field is required.</span>
+                  </div>
+
+                  <!-- Filled in automatically from the Year of Registration; not editable -->
+                  <div class="form-group">
+                    <input type="hidden" id="yearsExperience">
+                    <div class="input-wrapper">
+                      <input type="text" id="yearsExperienceDisplay" class="form-input has-icon readonly-field"
+                        placeholder="Experience" readonly tabindex="-1">
+                      <i class="fa-solid fa-briefcase field-icon"></i>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -157,7 +197,7 @@
               </div>
               <hr class="section-divider">
 
-              <div class="form-row form-row-3">
+              <div class="form-row form-row-2">
                 <div class="form-group">
                   <input type="hidden" id="medicalSpecialty">
                   <div class="custom-select-trigger" id="medicalSpecialtyTrigger" onclick="openDropdownModal('medicalSpecialty')">
@@ -179,18 +219,6 @@
                     </span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                   </div>
-                </div>
-
-                <div class="form-group">
-                  <input type="hidden" id="yearsExperience">
-                  <div class="custom-select-trigger" id="yearsExperienceTrigger" onclick="openDropdownModal('yearsExperience')">
-                    <span class="trigger-content">
-                      <i class="fa-solid fa-briefcase field-icon-inline"></i>
-                      <span class="placeholder-text" id="yearsExperienceText">Years Of Experience</span>
-                    </span>
-                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-                  </div>
-                  <span class="field-error-msg">This field is required.</span>
                 </div>
               </div>
 
@@ -220,6 +248,16 @@
                   <div class="other-field-group" id="otherMedicalInstituteGroup">
                     <input type="text" id="otherMedicalInstitute" class="form-input"
                       placeholder="Please specify your medical institute">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="input-wrapper">
+                    <textarea id="fellowship" class="form-input has-icon fellowship-input" rows="1"
+                      placeholder="Fellowship (if any)"></textarea>
+                    <i class="fa-solid fa-award field-icon fellowship-icon"></i>
                   </div>
                 </div>
               </div>

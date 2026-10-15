@@ -566,6 +566,28 @@ body {
   min-width: 0;
 }
 
+/* Auto-filled field: can't be clicked into, so no text cursor or focus ring appears */
+#yearsExperienceDisplay {
+  font-weight: 400;
+  pointer-events: none;
+  user-select: none;
+  caret-color: transparent;
+}
+
+/* Greyed-out dropdown (State council before NMC / DCI is chosen) */
+.custom-select-trigger.disabled {
+  background-color: #F1F5F9;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Year of Registration + Years of Experience pairing (shares one grid column) */
+/* display: contents lets the two fields act as separate grid cells,
+   so Regd. No., Regd. Year and Experience are all the same width */
+.reg-exp-combo {
+  display: contents;
+}
+
 .council-trigger-compact {
   padding-left: 10px;
   padding-right: 8px;
@@ -1377,6 +1399,36 @@ body {
   overflow-wrap: break-word;
 }
 
+/* Fellowship: text wraps beside the icon and the box grows with it (see autoGrowFellowship in the JS) */
+.fellowship-input {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  min-height: 46px;
+  line-height: 1.5;
+}
+
+.input-wrapper .fellowship-icon {
+  top: 14px;
+  transform: none;
+}
+
+/* Keep the icon and the institute name on the same line; the name wraps beside the icon */
+#medicalInstituteTrigger .trigger-content {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+#medicalInstituteTrigger .trigger-content .field-icon-inline {
+  margin-top: 3px;
+}
+
+#medicalInstituteTrigger .placeholder-text,
+#medicalInstituteTrigger .selected-text {
+  flex: 1;
+  min-width: 0;
+}
+
 #qualificationsTrigger .dropdown-arrow,
 #medicalInstituteTrigger .dropdown-arrow {
   margin-top: 2px;
@@ -1492,7 +1544,7 @@ body {
   transition: all 0.25s ease;
   /* Locked look: greyed out with a dashed border (the editor's own
      border, since there is no toolbar above it in this state) */
-  color: #64748B;
+  color: #526074;
   background-color: #F1F5F9;
   border: 1.5px dashed #94A3B8;
   cursor: default;
@@ -1714,6 +1766,11 @@ body {
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
+.avatar-circle.error {
+  border-color: #DC2626;
+  background: #FEF2F2;
+}
+
 .avatar-upload:hover .avatar-circle {
   border-color: #0E65D7;
   background: #EFF6FF;
@@ -1823,6 +1880,12 @@ body {
   .personal-row-2 .regd-no-combo {
     grid-column: auto;
     gap: 10px;
+  }
+
+  /* Regd. No. / Regd. Year / Experience line up with the columns above:
+     photo-card width, then two equal columns */
+  .personal-row-3 {
+    grid-template-columns: 305px 1fr 1fr;
   }
 }
 
