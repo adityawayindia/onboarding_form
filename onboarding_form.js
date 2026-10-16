@@ -97,6 +97,48 @@ document.addEventListener('DOMContentLoaded', function () {
   const photoInput = document.getElementById('profilePhotoInput');
   const photoError = document.getElementById('photoError');
 
+  /* If a photo already exists, clicking the avatar opens a preview popup
+     (with a re-upload option) instead of the file picker. */
+  const photoModal = document.getElementById('photoModal');
+  const closePhotoModal = () => {
+    photoModal.classList.remove('open');
+    photoModal.setAttribute('aria-hidden', 'true');
+  };
+
+  document.querySelector('.avatar-upload').addEventListener('click', function (e) {
+    // Programmatic photoInput.click() bubbles up to this label; let it through
+    if (e.target === photoInput) return;
+    const img = document.querySelector('#avatarPreview img');
+    if (!img) return;
+    e.preventDefault();
+    document.getElementById('photoModalImg').src = img.src;
+    photoModal.classList.add('open');
+    photoModal.setAttribute('aria-hidden', 'false');
+  });
+  document.getElementById('photoModalClose').addEventListener('click', closePhotoModal);
+  photoModal.addEventListener('click', function (e) {
+    if (e.target === photoModal) closePhotoModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && photoModal.classList.contains('open')) closePhotoModal();
+  });
+  document.getElementById('photoModalReupload').addEventListener('click', function () {
+    closePhotoModal();
+    photoInput.click();
+  });
+
+  document.getElementById('photoModalRemove').addEventListener('click', function () {
+    closePhotoModal();
+    document.getElementById('avatarPreview').innerHTML = '<i class="fa-solid fa-user"></i>';
+    photoInput.value = '';
+    try {
+      localStorage.removeItem(PHOTO_STORAGE_KEY);
+    } catch (err) {
+      console.warn('Could not remove saved profile photo:', err);
+    }
+    persistDraft();
+  });
+
   photoInput.addEventListener('change', function () {
     const file = this.files[0];
     photoError.style.display = 'none';
@@ -137,14 +179,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const allFieldIds = [
     'firstName', 'email', 'gender', 'registrationCouncil', 'stateCouncil', 'mciRegdNo',
     'medicalSpecialty', 'medicalSubSpecialty',
-    'qualifications', 'registrationYear', 'fellowship',
+    'qualifications', 'registrationYear',
     'medicalInstitute', 'otherMedicalInstitute'
   ];
-
-  const fellowshipEl = document.getElementById('fellowship');
-  fellowshipEl.addEventListener('input', autoGrowFellowship);
-  // Enter would add a line break to a single-line answer, so block it
-  fellowshipEl.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
 
   allFieldIds.forEach(id => {
     const el = document.getElementById(id);
@@ -163,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
      Hospital/Clinic Location(s) — starts with one location
      ------------------------------------------------------- */
   addClinicLocation();
+  addFellowship();
 
   const agreeTerms = document.getElementById('agreeTerms');
   agreeTerms.addEventListener('change', validateForm);
@@ -172,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function () {
   initRichTextEditor();
 
   restoreOnboardingDraft();
-  autoGrowFellowship();
 
   /* Initial pass */
   validateForm();
@@ -184,6 +221,334 @@ document.addEventListener('DOMContentLoaded', function () {
    sub-specialty, years of experience, institute, state)
    using the same modal pattern as doctor_interest_form.html
    ========================================================= */
+/* ---------------------------------------------------------
+   Fellowship data, from Fellowship.pdf.
+   Each entry is [abbreviation, full form, specialties]. Specialties are
+   space-separated codes: 'all' (any specialty), 'med' / 'surg' (groups),
+   or the individual codes below, mapped to the Medical Specialty list.
+   --------------------------------------------------------- */
+const FELLOWSHIP_SPECIALTY_CODES = {
+  card: 'Cardiology', derm: 'Dermatology', endo: 'Endocrinology', gi: 'Gastroenterology',
+  gs: 'General Surgery', im: 'Internal Medicine', icu: 'Intensivist / Critical Care',
+  neuro: 'Neurology', obg: 'Obstetrics & Gynecology', onc: 'Oncology', ophth: 'Ophthalmology',
+  ortho: 'Orthopedics', peds: 'Pediatrics', psy: 'Psychiatry', pulm: 'Pulmonology',
+  rad: 'Radiology', uro: 'Urology'
+};
+const FELLOWSHIP_SPECIALTY_GROUPS = {
+  med: 'im card endo gi neuro onc pulm icu derm',
+  surg: 'gs ortho uro ophth'
+};
+
+// `flags` are ISO country codes drawn by the flag-icons library; options with
+// no single flag (international / other) use a Font Awesome globe instead.
+const FELLOWSHIP_COUNTRIES = [
+  { value: 'india', label: 'India', flags: ['in'] },
+  { value: 'australia', label: 'Australia', flags: ['au'] },
+  { value: 'austria', label: 'Austria', flags: ['at'] },
+  { value: 'bangladesh', label: 'Bangladesh', flags: ['bd'] },
+  { value: 'canada', label: 'Canada', flags: ['ca'] },
+  { value: 'france', label: 'France', flags: ['fr'] },
+  { value: 'germany', label: 'Germany', flags: ['de'] },
+  { value: 'hongkong', label: 'Hong Kong', flags: ['hk'] },
+  { value: 'indonesia', label: 'Indonesia', flags: ['id'] },
+  { value: 'ireland', label: 'Ireland', flags: ['ie'] },
+  { value: 'malaysia', label: 'Malaysia', flags: ['my'] },
+  { value: 'nepal', label: 'Nepal', flags: ['np'] },
+  { value: 'nz', label: 'New Zealand', flags: ['nz'] },
+  { value: 'pakistan', label: 'Pakistan', flags: ['pk'] },
+  { value: 'philippines', label: 'Philippines', flags: ['ph'] },
+  { value: 'singapore', label: 'Singapore', flags: ['sg'] },
+  { value: 'za', label: 'South Africa', flags: ['za'] },
+  { value: 'srilanka', label: 'Sri Lanka', flags: ['lk'] },
+  { value: 'switzerland', label: 'Switzerland', flags: ['ch'] },
+  { value: 'uk', label: 'United Kingdom', flags: ['gb'] },
+  { value: 'usa', label: 'United States of America', flags: ['us'] },
+  { value: 'intl', label: 'International Societies & European Boards', faIcon: 'fa-globe' },
+  { value: 'other', label: 'Other Country', faIcon: 'fa-earth-asia' }
+];
+
+/* Small flag(s) or icon for an option that has `flags` / `faIcon`; null otherwise */
+function buildOptionFlags(opt) {
+  if (!opt.flags && !opt.faIcon) return null;
+  const wrap = document.createElement('span');
+  wrap.className = 'opt-flags';
+  if (opt.flags) {
+    opt.flags.forEach(code => {
+      const flag = document.createElement('span');
+      flag.className = 'fi fi-' + code;
+      wrap.appendChild(flag);
+    });
+  } else {
+    wrap.innerHTML = '<i class="fa-solid ' + opt.faIcon + '"></i>';
+  }
+  return wrap;
+}
+
+const FELLOWSHIPS = {
+  india: [
+    ['FNB', 'Fellow of National Board', 'all'],
+    ['FNB-PD', 'Fellow of National Board - Post Doctoral', 'all'],
+    ['DNB', 'Diplomate of National Board', 'all'],
+    ['DrNB', 'Doctorate of National Board', 'all'],
+    ['DM', 'Doctor of Medicine (super-specialty degree)', 'med'],
+    ['MCh', 'Master of Chirurgiae (super-specialty surgical degree)', 'surg'],
+    ['FAMS', 'Fellow of the National Academy of Medical Sciences', 'all'],
+    ['FIAGES', 'Fellow of the Indian Association of Gastrointestinal Endosurgeons', 'gs gi'],
+    ['FALS', 'Fellowship of the Association of Surgeons of India in Laparoscopic Surgery', 'gs'],
+    ['FICOG', 'Fellow of the Indian College of Obstetricians and Gynaecologists', 'obg'],
+    ['FICC', 'Fellow of the Indian College of Cardiology', 'card'],
+    ['FCSI', 'Fellow of the Cardiological Society of India', 'card'],
+    ['FIMSA', 'Fellow of the International Medical Sciences Academy', 'all'],
+    ['FISN', 'Fellowship of the Indian Society of Nephrology', 'im'],
+    ['FICP', 'Fellow of the Indian College of Physicians', 'im'],
+    ['FICM', 'Fellowship of the Indian College of Critical Care Medicine', 'icu'],
+    ['FNB Arthroplasty', 'Fellowship of National Board in Arthroplasty', 'ortho'],
+    ['FNB Breast Imaging', 'Fellowship of National Board in Breast Imaging', 'rad'],
+    ['FNB Hand & Micro Surgery', 'Fellowship of National Board in Hand and Microsurgery', 'ortho gs'],
+    ['FNB Infectious Diseases', 'Fellowship of National Board in Infectious Diseases', 'im'],
+    ['FNB Maternal & Foetal Medicine', 'Fellowship of National Board in Maternal and Foetal Medicine', 'obg'],
+    ['FNB Minimal Access Surgery', 'Fellowship of National Board in Minimal Access Surgery', 'gs obg uro'],
+    ['FNB Paediatric Gastroenterology', 'Fellowship of National Board in Paediatric Gastroenterology', 'peds gi'],
+    ['FNB Paediatric Haemato-Oncology', 'Fellowship of National Board in Paediatric Haemato-Oncology', 'peds onc'],
+    ['FNB Paediatric Nephrology', 'Fellowship of National Board in Paediatric Nephrology', 'peds'],
+    ['FNB Pain Medicine', 'Fellowship of National Board in Pain Medicine', 'icu'],
+    ['FNB Reproductive Medicine', 'Fellowship of National Board in Reproductive Medicine', 'obg'],
+    ['FNB Spine Surgery', 'Fellowship of National Board in Spine Surgery', 'ortho'],
+    ['FNB Sports Medicine', 'Fellowship of National Board in Sports Medicine', 'ortho'],
+    ['FNB Vitreo-Retinal Surgery', 'Fellowship of National Board in Vitreo-Retinal Surgery', 'ophth'],
+    ['FNB Interventional Cardiology (PD)', 'Postdoctoral Fellowship of National Board in Interventional Cardiology', 'card'],
+    ['FNB Liver Transplantation (PD)', 'Postdoctoral Fellowship of National Board in Liver Transplantation', 'gi gs'],
+    ['FNB Neurovascular Intervention (PD)', 'Postdoctoral Fellowship of National Board in Neurovascular Intervention', 'neuro rad']
+  ],
+  uk: [
+    ['FRCS', 'Fellow of the Royal College of Surgeons', 'surg'],
+    ['FRCP', 'Fellow of the Royal College of Physicians', 'med'],
+    ['MRCP (UK)', 'Membership of the Royal Colleges of Physicians', 'med'],
+    ['MRCS', 'Membership of the Royal Colleges of Surgeons', 'surg'],
+    ['FRCR', 'Fellow of the Royal College of Radiologists', 'rad onc'],
+    ['MRCPsych', 'Membership of the Royal College of Psychiatrists', 'psy'],
+    ['MRCPCH', 'Membership of the Royal College of Paediatrics and Child Health', 'peds'],
+    ['FRCEM', 'Fellow of the Royal College of Emergency Medicine', 'icu'],
+    ['FRCGP', 'Fellow of the Royal College of General Practitioners', 'im'],
+    ['FRCOG', 'Fellow of the Royal College of Obstetricians and Gynaecologists', 'obg'],
+    ['FRCA', 'Fellow of the Royal College of Anaesthetists', 'icu'],
+    ['FRCS (Orth)', 'Fellowship in Trauma and Orthopaedic Surgery', 'ortho'],
+    ['FRCS (Neuro.Surg.)', 'Fellowship in Neurosurgery', 'neuro'],
+    ['FRCS (Plast)', 'Fellowship in Plastic Surgery', 'gs'],
+    ['FRCS (Urol)', 'Fellowship in Urology', 'uro'],
+    ['FRCS (ORL-HNS)', 'Fellowship in Otolaryngology-Head and Neck Surgery', 'gs'],
+    ['FRCSI', 'Fellow of the Royal College of Surgeons in Ireland', 'surg'],
+    ['FRCPI', 'Fellow of the Royal College of Physicians of Ireland', 'med'],
+    ['MRCPI', 'Member of the Royal College of Physicians of Ireland', 'med'],
+    ['FRCPI (Paeds)', 'Fellowship of the Royal College of Physicians of Ireland in Paediatrics', 'peds'],
+    ['FCAI', 'Fellow of the College of Anaesthesiologists of Ireland', 'icu'],
+    ['FFR RCSI', 'Fellow of the Faculty of Radiologists, Royal College of Surgeons in Ireland', 'rad']
+  ],
+  usa: [
+    ['FACP', 'Fellow of the American College of Physicians', 'med'],
+    ['FACS', 'Fellow of the American College of Surgeons', 'surg'],
+    ['FACC', 'Fellow of the American College of Cardiology', 'card'],
+    ['FAHA', 'Fellow of the American Heart Association', 'card'],
+    ['FCCP', 'Fellow of the American College of Chest Physicians', 'pulm icu'],
+    ['FASN', 'Fellow of the American Society of Nephrology', 'im'],
+    ['AGAF', 'Fellow of the American Gastroenterological Association', 'gi'],
+    ['FACG', 'Fellow of the American College of Gastroenterology', 'gi'],
+    ['FAAAAI', 'Fellow of the American Academy of Allergy, Asthma & Immunology', 'pulm im'],
+    ['FAAP', 'Fellow of the American Academy of Pediatrics', 'peds'],
+    ['FACOG', 'Fellow of the American College of Obstetricians and Gynecologists', 'obg'],
+    ['FASAM', 'Fellow of the American Society of Addiction Medicine', 'psy'],
+    ['FASMBS', 'Fellow of the American Society for Metabolic and Bariatric Surgery', 'gs'],
+    ['FASCRS', 'Fellow of the American Society of Colon and Rectal Surgeons', 'gs'],
+    ['FASE', 'Fellow of the American Society of Echocardiography', 'card'],
+    ['FSVS', 'Fellow of the Society for Vascular Surgery', 'gs card'],
+    ['FACR', 'Fellow of the American College of Radiology', 'rad onc'],
+    ['FAAN', 'Fellow of the American Academy of Neurology', 'neuro'],
+    ['FAANS', 'Fellow of the American Association of Neurological Surgeons', 'neuro'],
+    ['FAPA', 'Fellow of the American Psychiatric Association', 'psy']
+  ],
+  canada: [
+    ['FRCPC', 'Fellow of the Royal College of Physicians of Canada', 'med peds psy rad'],
+    ['FRCSC', 'Fellow of the Royal College of Surgeons of Canada', 'surg obg'],
+    ['CCFP', 'Certification in the College of Family Physicians of Canada', 'im'],
+    ['FCFP', 'Fellow of the College of Family Physicians of Canada', 'im']
+  ],
+  anz: [
+    ['FRACP', 'Fellow of the Royal Australasian College of Physicians', 'med peds'],
+    ['FRACS', 'Fellow of the Royal Australasian College of Surgeons', 'surg'],
+    ['FRANZCO', 'Fellow of the Royal Australian and New Zealand College of Ophthalmologists', 'ophth'],
+    ['FRANZCOG', 'Fellow of the Royal Australian and New Zealand College of Obstetricians and Gynaecologists', 'obg'],
+    ['FRANZCR','Fellow of the Royal Australian and New Zealand College of Radiologists', 'rad onc'],
+    ['FRANZCP', 'Fellow of the Royal Australian and New Zealand College of Psychiatrists', 'psy'],
+    ['FANZCA', 'Fellow of the Australian and New Zealand College of Anaesthetists', 'icu'],
+    ['FACEM', 'Fellow of the Australasian College for Emergency Medicine', 'icu'],
+    ['FRACGP', 'Fellow of the Royal Australian College of General Practitioners', 'im'],
+    ['FACRRM', 'Fellow of the Australian College of Rural and Remote Medicine', 'im'],
+    ['FACD', 'Fellow of the Australasian College of Dermatologists', 'derm'],
+    ['FCICM', 'Fellow of the College of Intensive Care Medicine of Australia and New Zealand', 'icu'],
+    ['FFPMANZCA', 'Fellow of the Faculty of Pain Medicine, ANZCA', 'icu'],
+    ['FACSEP', 'Fellow of the Australasian College of Sport and Exercise Physicians', 'ortho'],
+    ['FRNZCGP', 'Fellow of the Royal New Zealand College of General Practitioners', 'im'],
+    ['FDRHMNZ', 'Fellow of the Division of Rural Hospital Medicine New Zealand', 'im'],
+    ['FAChPM', 'Fellow of the Australasian Chapter of Palliative Medicine', 'onc im'],
+    ['FAFRM', 'Fellow of the Australasian Faculty of Rehabilitation Medicine', 'ortho neuro']
+  ],
+  za: [
+    ['FCP(SA)', 'Fellow of the College of Physicians of South Africa', 'med'],
+    ['FCS(SA)', 'Fellow of the College of Surgeons of South Africa', 'surg'],
+    ['FCOG(SA)', 'Fellow of the College of Obstetricians and Gynaecologists of South Africa', 'obg'],
+    ['FCFP(SA)', 'Fellow of the College of Family Physicians of South Africa', 'im'],
+    ['FCEM(SA)', 'Fellow of the College of Emergency Medicine of South Africa', 'icu'],
+    ['FC Derm(SA)', 'Fellow of the College of Dermatologists of South Africa', 'derm'],
+    ['FC Neurol(SA)', 'Fellow of the College of Neurologists of South Africa', 'neuro'],
+    ['FC Neurosurg(SA)', 'Fellow of the College of Neurosurgeons of South Africa', 'neuro'],
+    ['FC Orth(SA)', 'Fellow of the College of Orthopaedic Surgeons of South Africa', 'ortho'],
+    ['FC Ophth(SA)', 'Fellow of the College of Ophthalmologists of South Africa', 'ophth'],
+    ['FCORL(SA)', 'Fellow of the College of Otorhinolaryngologists of South Africa', 'gs'],
+    ['FC Paed(SA)', 'Fellow of the College of Paediatricians of South Africa', 'peds'],
+    ['FC Paed Surg(SA)', 'Fellow of the College of Paediatric Surgeons of South Africa', 'peds gs'],
+    ['FC Plast Surg(SA)', 'Fellow of the College of Plastic Surgeons of South Africa', 'gs'],
+    ['FC Psych(SA)', 'Fellow of the College of Psychiatrists of South Africa', 'psy'],
+    ['FC Rad Diag(SA)', 'Fellow of the College of Radiologists of South Africa in Diagnostic Radiology', 'rad'],
+    ['FC Rad Onc(SA)', 'Fellow of the College of Radiation Oncologists of South Africa', 'onc'],
+    ['FC Urol(SA)', 'Fellow of the College of Urologists of South Africa', 'uro'],
+    ['FCNP(SA)', 'Fellow of the College of Nuclear Physicians of South Africa', 'rad']
+  ],
+  southasia: [
+    ['FCPS', 'Fellow of the College of Physicians and Surgeons', 'all'],
+    ['MCPS', 'Member of the College of Physicians and Surgeons', 'all'],
+    ['FRCS', 'Fellow of the Royal College of Surgeons', 'surg'],
+    ['MRCP', 'Membership of the Royal Colleges of Physicians', 'med'],
+    ['MD', 'Doctor of Medicine', 'all'],
+    ['MS', 'Master of Surgery', 'surg obg'],
+    ['DM', 'Doctor of Medicine, super-specialty qualification', 'med'],
+    ['MCh', 'Master of Chirurgiae, super-specialty surgical qualification', 'surg']
+  ],
+  hksg: [
+    ['FHKAM', 'Fellow of the Hong Kong Academy of Medicine', 'all'],
+    ['FHKCP', 'Fellow of the Hong Kong College of Physicians', 'med'],
+    ['FHKAM (Surgery)', 'Fellow of the Hong Kong Academy of Medicine in Surgery', 'surg'],
+    ['FHKCEM', 'Fellow of the Hong Kong College of Emergency Medicine', 'icu'],
+    ['FHKCFP', 'Fellow of the Hong Kong College of Family Physicians', 'im'],
+    ['FHKCOG', 'Fellow of the Hong Kong College of Obstetricians and Gynaecologists', 'obg'],
+    ['FHKCR', 'Fellow of the Hong Kong College of Radiologists', 'rad'],
+    ['FHKAM (Paediatrics)', 'Fellowship of the Hong Kong Academy of Medicine in Paediatrics', 'peds'],
+    ['FAMS', 'Fellow of the Academy of Medicine, Singapore', 'all'],
+    ['MMed', 'Master of Medicine (Singapore)', 'all'],
+    ['MRCP (UK)', 'Membership of the Royal Colleges of Physicians', 'med'],
+    ['FRCS', 'Fellow of the Royal College of Surgeons', 'surg']
+  ],
+  europe: [
+    ['FESC', 'Fellow of the European Society of Cardiology', 'card'],
+    ['FERS', 'Fellow of the European Respiratory Society', 'pulm'],
+    ['EDIC', 'European Diploma in Intensive Care', 'icu'],
+    ['DESAIC', 'Diploma of the European Society of Anaesthesiology and Intensive Care', 'icu'],
+    ['EDAIC', 'European Diploma in Anaesthesiology and Intensive Care', 'icu'],
+    ['FEBU', 'Fellow of the European Board of Urology', 'uro'],
+    ['FEBS', 'Fellow of the European Board of Surgery', 'gs'],
+    ['FEBO', 'Fellow of the European Board of Ophthalmology', 'ophth'],
+    ['FEBNM', 'Fellow of the European Board of Nuclear Medicine', 'rad onc'],
+    ['EDiR', 'European Diploma in Radiology', 'rad'],
+    ['FEFIM', 'Fellow of the European Federation of Internal Medicine', 'im'],
+    ['FEBOT', 'Fellow of the European Board of Orthopaedics and Traumatology', 'ortho'],
+    ['FEBPRM', 'Fellow of the European Board of Physical and Rehabilitation Medicine', 'ortho neuro'],
+    ['FEFSM', 'European sports medicine fellowship', 'ortho'],
+    ['FMH', 'Swiss Medical Association specialist title (Switzerland)', 'all'],
+    ['Facharzt', 'Specialist physician qualification (Germany / Austria)', 'all'],
+    ['DES', "Diplome d'Etudes Specialisees (France)", 'all'],
+    ['DESC', "Diplome d'Etudes Specialisees Complementaires (France)", 'all']
+  ],
+  intl: [
+    ['FESC', 'Fellow of the European Society of Cardiology', 'card'],
+    ['FACC', 'Fellow of the American College of Cardiology', 'card'],
+    ['FAHA', 'Fellow of the American Heart Association', 'card'],
+    ['FASE', 'Fellow of the American Society of Echocardiography', 'card'],
+    ['FCCP', 'Fellow of the American College of Chest Physicians', 'pulm icu'],
+    ['FERS', 'Fellow of the European Respiratory Society', 'pulm'],
+    ['FASN', 'Fellow of the American Society of Nephrology', 'im'],
+    ['FASGE', 'Fellow of the American Society for Gastrointestinal Endoscopy', 'gi'],
+    ['FACG', 'Fellow of the American College of Gastroenterology', 'gi'],
+    ['AGAF', 'Fellow of the American Gastroenterological Association', 'gi'],
+    ['FAAN', 'Fellow of the American Academy of Neurology', 'neuro'],
+    ['FAANS', 'Fellow of the American Association of Neurological Surgeons', 'neuro'],
+    ['FACS', 'Fellow of the American College of Surgeons', 'surg'],
+    ['FACP', 'Fellow of the American College of Physicians', 'med'],
+    ['FASAM', 'Fellow of the American Society of Addiction Medicine', 'psy'],
+    ['FIMSA', 'Fellow of the International Medical Sciences Academy', 'all'],
+    ['FICM', 'Fellowship of the Indian College of Critical Care Medicine', 'icu']
+  ],
+  philippines: [
+    ['FPCP', 'Fellow of the Philippine College of Physicians', 'med'],
+    ['FPCS', 'Fellow of the Philippine College of Surgeons', 'surg']
+  ],
+  indonesia: [
+    ['Sp.1 / Sp.2', 'Specialist / subspecialist medical qualification', 'all']
+  ],
+  malaysia: [
+    ['FRCP', 'Fellow of the Royal College of Physicians', 'med'],
+    ['FRCS', 'Fellow of the Royal College of Surgeons', 'surg'],
+    ['MRCP', 'Membership of the Royal Colleges of Physicians', 'med'],
+    ['FRCR', 'Fellow of the Royal College of Radiologists', 'rad onc']
+  ]
+};
+
+/* The PDF groups some countries together. The groups above are split here
+   so each country is its own entry: shared qualifications are listed under
+   every country that uses them, and a few titles belong to one country only. */
+(function splitFellowshipGroups() {
+  const without = (list, abbrs) => list.filter(e => !abbrs.includes(e[0]));
+  const only = (list, abbrs) => list.filter(e => abbrs.includes(e[0]));
+
+  // UK / Ireland
+  const irishOnly = ['FRCSI', 'FRCPI', 'MRCPI', 'FRCPI (Paeds)', 'FCAI', 'FFR RCSI'];
+  FELLOWSHIPS.ireland = only(FELLOWSHIPS.uk, irishOnly.concat('FRCS'));
+  FELLOWSHIPS.uk = without(FELLOWSHIPS.uk, irishOnly);
+
+  // Australia / New Zealand (joint colleges serve both)
+  const ausOnly = ['FRACGP', 'FACRRM', 'FACD', 'FACSEP'];
+  const nzOnly = ['FRNZCGP', 'FDRHMNZ'];
+  FELLOWSHIPS.australia = without(FELLOWSHIPS.anz, nzOnly);
+  FELLOWSHIPS.nz = without(FELLOWSHIPS.anz, ausOnly);
+  delete FELLOWSHIPS.anz;
+
+  // Bangladesh, Pakistan, Sri Lanka, Nepal (FCPS / MCPS: Bangladesh and Pakistan only)
+  FELLOWSHIPS.bangladesh = FELLOWSHIPS.southasia;
+  FELLOWSHIPS.pakistan = FELLOWSHIPS.southasia;
+  FELLOWSHIPS.srilanka = without(FELLOWSHIPS.southasia, ['FCPS', 'MCPS']);
+  FELLOWSHIPS.nepal = FELLOWSHIPS.srilanka;
+  delete FELLOWSHIPS.southasia;
+
+  // Hong Kong / Singapore
+  const sgOnly = ['FAMS', 'MMed', 'MRCP (UK)', 'FRCS'];
+  FELLOWSHIPS.singapore = only(FELLOWSHIPS.hksg, sgOnly);
+  FELLOWSHIPS.hongkong = without(FELLOWSHIPS.hksg, sgOnly);
+  delete FELLOWSHIPS.hksg;
+
+  // Europe: national titles go to their country; the European board
+  // diplomas join the international society fellowships.
+  FELLOWSHIPS.germany = only(FELLOWSHIPS.europe, ['Facharzt']);
+  FELLOWSHIPS.austria = FELLOWSHIPS.germany;
+  FELLOWSHIPS.switzerland = only(FELLOWSHIPS.europe, ['FMH']);
+  FELLOWSHIPS.france = only(FELLOWSHIPS.europe, ['DES', 'DESC']);
+  const national = ['Facharzt', 'FMH', 'DES', 'DESC'];
+  const known = new Set(FELLOWSHIPS.intl.map(e => e[0]));
+  FELLOWSHIPS.intl = FELLOWSHIPS.intl.concat(
+    without(FELLOWSHIPS.europe, national).filter(e => !known.has(e[0]))
+  );
+  delete FELLOWSHIPS.europe;
+
+  FELLOWSHIPS.other = [];   // countries not listed: the doctor adds their own
+})();
+
+function fellowshipOptionsFor(countryKey, specialty) {
+  const expand = tokens => tokens.split(' ').flatMap(t =>
+    FELLOWSHIP_SPECIALTY_GROUPS[t] ? FELLOWSHIP_SPECIALTY_GROUPS[t].split(' ') : [t]
+  ).map(t => FELLOWSHIP_SPECIALTY_CODES[t]);
+
+  return (FELLOWSHIPS[countryKey] || [])
+    .filter(([, , specs]) => specs === 'all' || expand(specs).includes(specialty))
+    .map(([abbr, full]) => ({ value: abbr, label: abbr + ' (' + full + ')', triggerLabel: abbr }));
+}
+
 const DROPDOWN_CONFIG = {
   gender: {
     title: 'Select Gender',
@@ -344,17 +709,231 @@ function buildRegistrationYearOptions() {
   return options;
 }
 
-function autoGrowFellowship() {
-  const el = document.getElementById('fellowship');
-  // Resetting the height to measure the text would briefly shrink the page
-  // and make it jump. Pin the wrapper at its current height while measuring
-  // so the layout around the box never moves.
-  const wrapper = el.parentElement;
-  wrapper.style.minHeight = wrapper.offsetHeight + 'px';
-  el.style.height = 'auto';
-  const newHeight = el.scrollHeight + (el.offsetHeight - el.clientHeight);
-  el.style.height = newHeight + 'px';
-  wrapper.style.minHeight = '';
+/* =========================================================
+   Fellowships (optional, up to 5)
+
+   Each block's fields are suffixed "-<index>" ("fellowshipCountry-0",
+   "fellowship-0"). A block's fellowship list depends on its own country
+   and on the Medical Specialty picked above.
+   ========================================================= */
+const MAX_FELLOWSHIPS = 5;
+let fellowshipIndices = [];
+
+const FELLOWSHIP_COUNTRY_CONFIG = {
+  title: 'Select Country of Fellowship',
+  icon: 'fa-earth-asia',
+  options: FELLOWSHIP_COUNTRIES
+};
+
+function newFellowshipConfig() {
+  return {
+    title: 'Select Fellowship',
+    icon: 'fa-award',
+    triggerLabel: 'Fellowship',
+    multi: true,
+    maxSelections: 1,
+    allowCustom: true,
+    placeholder: 'Search fellowship',
+    addPlaceholder: 'Add your fellowship',
+    options: []   // filled in by refreshFellowshipOptions
+  };
+}
+
+function fellowshipFieldIds(i) {
+  return ['fellowshipCountry-' + i, 'fellowship-' + i];
+}
+
+function generateFellowshipBlockHtml(i) {
+  return `
+    <div class="clinic-location-block fellowship-block" data-fellowship-index="${i}">
+      <div class="location-header"></div>
+
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <input type="hidden" id="fellowshipCountry-${i}">
+          <div class="custom-select-trigger" id="fellowshipCountry-${i}Trigger" onclick="openDropdownModal('fellowshipCountry-${i}')">
+            <span class="trigger-content">
+              <i class="fa-solid fa-earth-asia field-icon-inline"></i>
+              <span class="placeholder-text" id="fellowshipCountry-${i}Text">Country of Fellowship</span>
+            </span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </div>
+          <span class="field-error-msg"></span>
+        </div>
+
+        <div class="form-group">
+          <input type="hidden" id="fellowship-${i}">
+          <div class="custom-select-trigger disabled" id="fellowship-${i}Trigger" onclick="openDropdownModal('fellowship-${i}')">
+            <span class="trigger-content">
+              <i class="fa-solid fa-award field-icon-inline"></i>
+              <span class="placeholder-text" id="fellowship-${i}Text">Fellowship</span>
+            </span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </div>
+          <span class="field-error-msg"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* With one block the fields stand alone; with several, each gets a boxed
+   header with its number and a remove button. */
+function refreshFellowshipHeaders() {
+  const multiple = fellowshipIndices.length > 1;
+  document.getElementById('fellowshipsContainer').classList.toggle('has-multiple', multiple);
+
+  fellowshipIndices.forEach((i, pos) => {
+    const block = document.querySelector('.fellowship-block[data-fellowship-index="' + i + '"]');
+    const header = block && block.querySelector('.location-header');
+    if (!header) return;
+    header.innerHTML = multiple
+      ? `<div class="location-header-left"><span class="location-title">Fellowship ${pos + 1}</span></div>
+         <button type="button" class="location-remove-btn" onclick="removeFellowship(${i})" aria-label="Remove Fellowship ${pos + 1}" title="Remove this fellowship">
+           <i class="fa-solid fa-trash-can"></i>
+         </button>`
+      : '';
+    header.style.display = multiple ? '' : 'none';
+  });
+
+  const addBtn = document.getElementById('addFellowshipBtn');
+  if (addBtn) addBtn.style.display = fellowshipIndices.length >= MAX_FELLOWSHIPS ? 'none' : 'inline-flex';
+}
+
+function addFellowship() {
+  if (fellowshipIndices.length >= MAX_FELLOWSHIPS) return null;
+
+  const used = new Set(fellowshipIndices);
+  let next = 0;
+  while (used.has(next)) next++;
+  fellowshipIndices.push(next);
+
+  DROPDOWN_CONFIG['fellowshipCountry-' + next] = FELLOWSHIP_COUNTRY_CONFIG;
+  DROPDOWN_CONFIG['fellowship-' + next] = newFellowshipConfig();
+  MULTI_SELECTIONS['fellowship-' + next] = [];
+
+  document.getElementById('fellowshipsContainer')
+    .insertAdjacentHTML('beforeend', generateFellowshipBlockHtml(next));
+  refreshFellowshipHeaders();
+  refreshFellowshipOptions(next);
+
+  if (!isRestoringDraft) {
+    const block = document.querySelector('.fellowship-block[data-fellowship-index="' + next + '"]');
+    if (block) {
+      block.classList.add('location-enter');
+      block.addEventListener('animationend', () => block.classList.remove('location-enter'), { once: true });
+    }
+    persistDraft();
+  }
+  return next;
+}
+
+function removeFellowship(i) {
+  if (fellowshipIndices.length <= 1) return;
+
+  const block = document.querySelector('.fellowship-block[data-fellowship-index="' + i + '"]');
+  const finish = () => {
+    fellowshipIndices = fellowshipIndices.filter(idx => idx !== i);
+    if (block) block.remove();
+
+    fellowshipFieldIds(i).forEach(id => {
+      interactedFields.delete(id);
+      delete DROPDOWN_CONFIG[id];
+    });
+    delete MULTI_SELECTIONS['fellowship-' + i];
+
+    refreshFellowshipHeaders();
+    persistDraft();
+  };
+
+  if (block) {
+    // Same collapse animation as the clinic locations
+    block.style.height = block.getBoundingClientRect().height + 'px';
+    block.classList.add('location-exit');
+    block.getBoundingClientRect();
+    requestAnimationFrame(() => block.classList.add('location-exit-active'));
+    block.addEventListener('transitionend', finish, { once: true });
+  } else {
+    finish();
+  }
+}
+
+/* The fellowship list needs a country and a specialty first; tell the
+   doctor which is missing when they try to open it too early. */
+function showFellowshipPrerequisiteHint(i) {
+  const missingCountry = !document.getElementById('fellowshipCountry-' + i).value;
+  const missingSpecialty = !document.getElementById('medicalSpecialty').value;
+
+  const message = missingCountry && missingSpecialty
+    ? 'Select your Medical Specialty and the country of fellowship first.'
+    : missingCountry
+      ? 'Select the country of fellowship first.'
+      : 'Select your Medical Specialty above first.';
+
+  setFellowshipHint(i, message);
+
+  // Highlight whichever of the two is still empty
+  if (missingCountry) setTriggerHighlight('fellowshipCountry-' + i + 'Trigger', 'Select the country first.');
+  if (missingSpecialty) {
+    setTriggerHighlight('medicalSpecialtyTrigger', 'Select your Medical Specialty first.');
+    // The specialty sits above this section, so bring it into view
+    document.getElementById('medicalSpecialtyTrigger')
+      .scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function setFellowshipHint(i, message) {
+  setTriggerHighlight('fellowship-' + i + 'Trigger', message);
+}
+
+/* Red outline + message under a dropdown trigger (empty message clears it) */
+function setTriggerHighlight(triggerId, message) {
+  const trigger = document.getElementById(triggerId);
+  const group = trigger.closest('.form-group');
+  const msgEl = group.querySelector('.field-error-msg');
+  group.classList.toggle('invalid', !!message);
+  trigger.classList.toggle('error', !!message);
+  if (message && msgEl) msgEl.textContent = message;
+}
+
+/* Rebuilds the fellowship list for one block, or all blocks when no index
+   is given (e.g. after the Medical Specialty changes). */
+function refreshFellowshipOptions(index) {
+  const specialty = document.getElementById('medicalSpecialty').value;
+  const indices = index === undefined ? fellowshipIndices : [index];
+
+  indices.forEach(i => {
+    const country = document.getElementById('fellowshipCountry-' + i).value;
+    const trigger = document.getElementById('fellowship-' + i + 'Trigger');
+    const ready = !!(country && specialty);
+
+    const config = DROPDOWN_CONFIG['fellowship-' + i];
+    const previousOptions = config.options;
+    const options = ready ? fellowshipOptionsFor(country, specialty) : [];
+    config.options = options;
+    trigger.classList.toggle('disabled', !ready);
+    if (ready) setFellowshipHint(i, '');
+    if (country) setTriggerHighlight('fellowshipCountry-' + i + 'Trigger', '');
+    if (specialty) setTriggerHighlight('medicalSpecialtyTrigger', '');
+
+    // Drop a pick that came from the old list and isn't in the new one;
+    // an entry the doctor typed themselves stays
+    const current = MULTI_SELECTIONS['fellowship-' + i][0];
+    if (current) {
+      const wasListed = previousOptions.some(opt => opt.value === current);
+      const stillOffered = options.some(opt => opt.value === current);
+      if (wasListed && !stillOffered) {
+        MULTI_SELECTIONS['fellowship-' + i] = [];
+        syncMultiField('fellowship-' + i);
+      }
+    }
+  });
+}
+
+function collectFellowships() {
+  return fellowshipIndices.map(i => ({
+    country: document.getElementById('fellowshipCountry-' + i).value,
+    fellowship: MULTI_SELECTIONS['fellowship-' + i][0] || ''
+  }));
 }
 
 let currentDropdownField = null;
@@ -402,7 +981,7 @@ function collectDraft() {
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
     registrationYear: document.getElementById('registrationYear').value,
-    fellowship: document.getElementById('fellowship').value,
+    fellowships: collectFellowships(),
     medicalInstitute: document.getElementById('medicalInstitute').value,
     otherMedicalInstitute: document.getElementById('otherMedicalInstitute').value,
     clinicLocations: collectClinicLocations(),
@@ -510,8 +1089,12 @@ function applySingleSelect(fieldId, value, options) {
   textEl.textContent = label;
   textEl.classList.remove('placeholder-text');
   textEl.classList.add('selected-text');
+  const flags = match && buildOptionFlags(match);
+  if (flags) textEl.prepend(flags);
 
   if (fieldId === 'registrationYear') updateYearsExperience(value);
+  if (fieldId === 'medicalSpecialty') refreshFellowshipOptions();
+  if (fieldId.startsWith('fellowshipCountry-')) refreshFellowshipOptions(locationIndexOf(fieldId));
   if (fieldId === 'registrationCouncil') {
     updateStateCouncil(value, options && options.keepDependent);
   }
@@ -857,7 +1440,7 @@ function restoreOnboardingDraft() {
 
   try {
     if (draft) {
-      const textIds = ['firstName', 'email', 'mciRegdNo', 'fellowship'];
+      const textIds = ['firstName', 'email', 'mciRegdNo'];
       textIds.forEach(id => {
         if (typeof draft[id] === 'string') document.getElementById(id).value = draft[id];
       });
@@ -866,9 +1449,24 @@ function restoreOnboardingDraft() {
       // (which sanitizes it) rather than straight into the textarea.
       if (typeof draft.aboutSection === 'string') setRteContent(draft.aboutSection);
 
-      // Years of Experience is recalculated from registrationYear here
+      // Years of Experience is recalculated from registrationYear here.
       ['gender', 'medicalSpecialty', 'registrationYear', 'medicalInstitute']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
+
+      // Fellowships come after the specialty, which decides their lists
+      if (Array.isArray(draft.fellowships) && draft.fellowships.length) {
+        while (fellowshipIndices.length < draft.fellowships.length) addFellowship();
+        draft.fellowships.forEach((f, pos) => {
+          const i = fellowshipIndices[pos];
+          if (i === undefined) return;
+          // Drafts saved with the old grouped countries (e.g. "anz") no longer match
+          if (FELLOWSHIP_COUNTRIES.some(c => c.value === f.country)) applySingleSelect('fellowshipCountry-' + i, f.country);
+          if (f.fellowship) {
+            MULTI_SELECTIONS['fellowship-' + i] = [f.fellowship];
+            syncMultiField('fellowship-' + i);
+          }
+        });
+      }
 
       // Older drafts stored the council as a list (and as "MCI", now NMC)
       let savedCouncil = Array.isArray(draft.registrationCouncil)
@@ -948,7 +1546,10 @@ function openDropdownModal(fieldId) {
   if (!config) return;
 
   // A greyed-out field (State council before a council is picked) can't be opened
-  if (document.getElementById(fieldId + 'Trigger').classList.contains('disabled')) return;
+  if (document.getElementById(fieldId + 'Trigger').classList.contains('disabled')) {
+    if (fieldId.startsWith('fellowship-')) showFellowshipPrerequisiteHint(locationIndexOf(fieldId));
+    return;
+  }
 
   currentDropdownField = fieldId;
 
@@ -1464,7 +2065,16 @@ function renderModalOptions(config, filterText) {
       });
       li.appendChild(removeBtn);
     } else {
-      li.textContent = opt.label;
+      const flags = buildOptionFlags(opt);
+      if (flags) {
+        const main = document.createElement('span');
+        main.className = 'option-main';
+        main.appendChild(flags);
+        main.appendChild(document.createTextNode(opt.label));
+        li.appendChild(main);
+      } else {
+        li.textContent = opt.label;
+      }
     }
 
     if (isMulti) {
@@ -1695,7 +2305,12 @@ function handleOnboardingSubmit(event) {
     yearsExperience: document.getElementById('yearsExperience').value,
     qualifications: MULTI_SELECTIONS.qualifications.slice(),
     registrationYear: document.getElementById('registrationYear').value,
-    fellowship: document.getElementById('fellowship').value.trim(),
+    fellowships: collectFellowships()
+      .filter(f => f.fellowship)
+      .map(f => {
+        const country = FELLOWSHIP_COUNTRIES.find(c => c.value === f.country);
+        return { country: country ? country.label : '', fellowship: f.fellowship };
+      }),
     medicalInstitute: document.getElementById('medicalInstitute').value === 'Other'
       ? document.getElementById('otherMedicalInstitute').value.trim()
       : document.getElementById('medicalInstitute').value,

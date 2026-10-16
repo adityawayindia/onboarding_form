@@ -382,6 +382,14 @@ body {
   margin-bottom: 0;
 }
 
+/* A lone fellowship row sits plain; the box only appears once there are several */
+#fellowshipsContainer:not(.has-multiple) .fellowship-block {
+  border: none;
+  padding: 0;
+  background: none;
+  margin-bottom: 0;
+}
+
 @keyframes locationBlockIn {
   from {
     opacity: 0;
@@ -1202,6 +1210,34 @@ body {
   gap: 10px;
 }
 
+/* Country flags beside an option / selected value (flag-icons library) */
+.option-main {
+  display: flex;
+  align-items: center;
+}
+
+.opt-flags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.opt-flags .fi {
+  width: 1.33em;
+  height: 1em;
+  line-height: 1;
+  font-size: 18px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.opt-flags i {
+  font-size: 16px;
+  color: #64748B;
+}
+
 .option-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1397,20 +1433,6 @@ body {
   overflow: visible;
   text-overflow: unset;
   overflow-wrap: break-word;
-}
-
-/* Fellowship: text wraps beside the icon and the box grows with it (see autoGrowFellowship in the JS) */
-.fellowship-input {
-  display: block;
-  resize: none;
-  overflow: hidden;
-  min-height: 46px;
-  line-height: 1.5;
-}
-
-.input-wrapper .fellowship-icon {
-  top: 14px;
-  transform: none;
 }
 
 /* Keep the icon and the institute name on the same line; the name wraps beside the icon */
@@ -1802,6 +1824,132 @@ body {
 }
 
 .avatar-upload:hover .avatar-camera-btn {
+  background: #0C58BE;
+}
+
+.photo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+
+.photo-modal.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0s;
+}
+
+.photo-modal .photo-modal-card {
+  transform: translateY(16px) scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.photo-modal.open .photo-modal-card {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-modal,
+  .photo-modal .photo-modal-card {
+    transition: none;
+  }
+}
+
+.photo-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 20px 20px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+  text-align: center;
+}
+
+.photo-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #475569;
+  cursor: pointer;
+}
+
+.photo-modal-img {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  margin: 12px auto 18px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.photo-modal-note {
+  margin: -6px 0 16px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #64748B;
+}
+
+.photo-modal-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.photo-modal-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.photo-modal-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid #DC2626;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #DC2626;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photo-modal-remove:hover {
+  background: #FEF2F2;
+}
+
+.photo-modal-reupload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: #0E65D7;
+  color: #FFFFFF;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photo-modal-reupload:hover {
   background: #0C58BE;
 }
 
