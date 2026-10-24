@@ -1277,6 +1277,63 @@ body {
   font-weight: 400;
 }
 
+/* "+ Add '<typed text>'" row pinned under the matches */
+.modal-options-list li.add-option {
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 6px 16px 4px;
+  padding: 9px 12px;
+  color: #0C3B5E;
+  font-weight: 600;
+  background: #EAF3FE;
+  border: 1.5px solid #BEDCFB;
+  border-radius: 12px;
+}
+
+.modal-options-list li.add-option:hover {
+  background: #DCEBFD;
+  border-color: #0E65D7;
+  color: #0C3B5E;
+  font-weight: 600;
+}
+
+.modal-options-list li.add-option i {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #0E65D7;
+  color: #FFFFFF;
+  font-size: 11px;
+}
+
+.modal-options-list li.add-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-options-list li.add-option:focus-visible {
+  outline: 2px solid #0E65D7;
+  outline-offset: -2px;
+  background-color: #F0F6FE;
+}
+
+.modal-options-list li.did-you-mean {
+  justify-content: flex-start;
+  color: #475569;
+}
+
+.modal-options-list li.did-you-mean strong {
+  margin-left: 4px;
+  color: #0E65D7;
+  font-weight: 600;
+}
+
 /* Selected chips inside the modal */
 .modal-chips-row {
   display: none;

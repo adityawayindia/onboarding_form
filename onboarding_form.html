@@ -245,10 +245,6 @@
                     </span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                   </div>
-                  <div class="other-field-group" id="otherMedicalInstituteGroup">
-                    <input type="text" id="otherMedicalInstitute" class="form-input"
-                      placeholder="Please specify your medical institute">
-                  </div>
                 </div>
               </div>
             </div>
@@ -434,16 +430,7 @@
         </button>
       </div>
 
-      <!-- Add-toggle row: switches the search bar into a dedicated "add new" field -->
-      <div class="modal-add-row" id="modalAddRow">
-        <p class="modal-search-hint" id="modalSearchHint"><i class="fa-solid fa-circle-info"></i> Can't find it in the list? Click on Add</p>
-        <button type="button" class="modal-add-toggle-btn" id="modalAddToggleBtn" onclick="toggleSearchAddMode()">
-          <i class="fa-solid fa-plus" id="modalAddToggleIcon"></i>
-          <span id="modalAddToggleLabel">Add</span>
-        </button>
-      </div>
-
-      <!-- Modal Search Bar (doubles as the add field for custom entries) -->
+      <!-- Modal Search Bar (typing something new surfaces a "+ Add" row in the list) -->
       <div class="modal-search-row" id="modalSearchRow">
         <div class="modal-search-box" id="modalSearchBox">
           <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>

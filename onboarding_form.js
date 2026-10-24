@@ -64,16 +64,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   /* -------------------------------------------------------
-     "Other" conditional text fields — cleared/validated on toggle
-     ------------------------------------------------------- */
-  ['otherMedicalInstitute'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      markFieldInteracted(id);
-      validateField(id);
-    });
-  });
-
-  /* -------------------------------------------------------
      Escape key closes the dropdown modal
      ------------------------------------------------------- */
   document.addEventListener('keydown', function (e) {
@@ -180,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'firstName', 'email', 'gender', 'registrationCouncil', 'stateCouncil', 'mciRegdNo',
     'medicalSpecialty', 'medicalSubSpecialty',
     'qualifications', 'registrationYear',
-    'medicalInstitute', 'otherMedicalInstitute'
+    'medicalInstitute'
   ];
 
   allFieldIds.forEach(id => {
@@ -586,7 +576,9 @@ const DROPDOWN_CONFIG = {
     multi: true,
     maxSelections: 1,
     allowCustom: true,
-    placeholder: 'Search sub-speciality',
+    smartLabel: true,
+    enterPicksMatch: true,
+    placeholder: 'Search or add sub-speciality',
     addPlaceholder: 'Add your sub-speciality',
     options: [
       'Interventional Cardiology', 'Pediatric Surgery', 'Neuro-Oncology', 'Joint Replacement',
@@ -598,7 +590,7 @@ const DROPDOWN_CONFIG = {
     icon: 'fa-graduation-cap',
     multi: true,
     allowCustom: true,
-    placeholder: 'Search qualification',
+    placeholder: 'Search or add qualification',
     addPlaceholder: 'Add your qualification',
     options: [
       'MBBS', 'MD', 'MS', 'DNB', 'DM', 'MCh', 'BDS', 'MDS', 'BAMS', 'BHMS', 'BUMS',
@@ -620,11 +612,12 @@ const DROPDOWN_CONFIG = {
       'All India Institute of Medical Sciences, New Delhi',
       'Postgraduate Institute of Medical Education and Research, Chandigarh',
       'Jawaharlal Institute of Postgraduate Medical Education and Research, Puducherry',
-      'Sanjay Gandhi Postgraduate Institute of Medical Sciences, Lucknow',
-      'Other'
+      'Sanjay Gandhi Postgraduate Institute of Medical Sciences, Lucknow'
     ],
-    otherGroupId: 'otherMedicalInstituteGroup',
-    otherInputId: 'otherMedicalInstitute'
+    allowCustom: true,
+    smartLabel: true,
+    enterPicksMatch: true,
+    placeholder: 'Search or add medical institute'
   },
   state: {
     title: 'Select State',
@@ -733,7 +726,7 @@ function newFellowshipConfig() {
     multi: true,
     maxSelections: 1,
     allowCustom: true,
-    placeholder: 'Search fellowship',
+    placeholder: 'Search or add fellowship',
     addPlaceholder: 'Add your fellowship',
     options: []   // filled in by refreshFellowshipOptions
   };
@@ -983,7 +976,6 @@ function collectDraft() {
     registrationYear: document.getElementById('registrationYear').value,
     fellowships: collectFellowships(),
     medicalInstitute: document.getElementById('medicalInstitute').value,
-    otherMedicalInstitute: document.getElementById('otherMedicalInstitute').value,
     clinicLocations: collectClinicLocations(),
     aboutSection: document.getElementById('aboutSection').value,
     agreeTerms: document.getElementById('agreeTerms').checked
@@ -1099,22 +1091,6 @@ function applySingleSelect(fieldId, value, options) {
     updateStateCouncil(value, options && options.keepDependent);
   }
 
-  if (config.otherGroupId) {
-    const group = document.getElementById(config.otherGroupId);
-    const input = document.getElementById(config.otherInputId);
-    if (value === 'Other') {
-      group.style.display = 'block';
-      input.required = true;
-      if (options && options.focusOther) {
-        setTimeout(() => input.focus(), 100);
-      }
-    } else {
-      group.style.display = 'none';
-      input.required = false;
-      input.value = '';
-      clearFieldError(config.otherInputId);
-    }
-  }
 }
 
 /* =========================================================
@@ -1450,8 +1426,14 @@ function restoreOnboardingDraft() {
       if (typeof draft.aboutSection === 'string') setRteContent(draft.aboutSection);
 
       // Years of Experience is recalculated from registrationYear here.
-      ['gender', 'medicalSpecialty', 'registrationYear', 'medicalInstitute']
+      ['gender', 'medicalSpecialty', 'registrationYear']
         .forEach(id => applySingleSelect(id, draft[id] || ''));
+
+      // Drafts from the old "Other" + text box flow keep the typed name
+      const savedInstitute = draft.medicalInstitute === 'Other'
+        ? (draft.otherMedicalInstitute || '').trim()
+        : draft.medicalInstitute;
+      if (savedInstitute) applySingleSelect('medicalInstitute', savedInstitute);
 
       // Fellowships come after the specialty, which decides their lists
       if (Array.isArray(draft.fellowships) && draft.fellowships.length) {
@@ -1496,10 +1478,6 @@ function restoreOnboardingDraft() {
         refreshLocationHeaders();
       }
 
-      if (draft.medicalInstitute === 'Other' && typeof draft.otherMedicalInstitute === 'string') {
-        document.getElementById('otherMedicalInstitute').value = draft.otherMedicalInstitute;
-      }
-
       ['qualifications', 'medicalSubSpecialty'].forEach(fieldId => {
         const draftValue = draft[fieldId];
         if (Array.isArray(draftValue)) {
@@ -1538,6 +1516,102 @@ function dedupeKey(text) {
   return text.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+/* Format-insensitive key for matching: "general-surgery", "General  Surgery"
+   and "Retina & Vitreous" / "retina vitreous" each collapse to one key */
+function matchKey(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(' ')
+    .filter(word => word && word !== 'and')
+    .join(' ');
+}
+
+const LOWERCASE_TITLE_WORDS = new Set(['and', 'of', 'in', 'the', 'for', 'to', 'with', 'on']);
+
+/* Tidies a typed custom label: slugs ("general-surgery") become words,
+   plain lowercase / ALL-CAPS words are title-cased, while short acronyms
+   (ENT) and deliberate mixed casing are left alone. */
+function cleanCustomLabel(text, knownAcronyms) {
+  let value = text.trim().replace(/\s+/g, ' ');
+  if (!value) return '';
+
+  if (!/\s/.test(value) && /[-_]/.test(value)) value = value.replace(/[-_]+/g, ' ');
+  value = value.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // A fully capitalised phrase ("GENERAL SURGERY") is shouting, not a list of acronyms
+  const shouting = value === value.toUpperCase() && value.includes(' ');
+
+  return value.split(' ').map((word, index) => {
+    if (word === '&') return word;
+    return word.split('-').map(part => {
+      if (!part) return part;
+      const lower = part.toLowerCase();
+      if (index > 0 && LOWERCASE_TITLE_WORDS.has(lower)) return lower;
+      const isLower = part === lower;
+      const isShortAcronym = !shouting && part === part.toUpperCase() && part.length <= 10;
+      const isAllCaps = part === part.toUpperCase() && part !== lower;
+      if (isShortAcronym && isAllCaps) return part;
+      // "aiims" -> AIIMS when the field's own list spells that word in capitals
+      if (knownAcronyms && knownAcronyms.has(lower)) return part.toUpperCase();
+      if (isLower || isAllCaps) return part.charAt(0).toUpperCase() + lower.slice(1);
+      return part;
+    }).join('-');
+  }).join(' ');
+}
+
+/* The label a typed query would be saved as for this field */
+function customLabelFor(config, text) {
+  return config.smartLabel
+    ? cleanCustomLabel(text, acronymsIn(config))
+    : text.trim().replace(/\s+/g, ' ');
+}
+
+/* All-caps words used in a field's own options (AIIMS, JIPMER, ...), lowercased */
+function acronymsIn(config) {
+  const words = new Set();
+  config.options.map(normalizeOption).forEach(opt => {
+    (opt.label.match(/\b[A-Z]{2,}\b/g) || []).forEach(word => words.add(word.toLowerCase()));
+  });
+  return words;
+}
+
+function editDistance(a, b) {
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = temp;
+    }
+  }
+  return prev[b.length];
+}
+
+/* Closest existing option for a probable typo ("cardilogy" -> Cardiology) */
+function findCloseOption(options, query) {
+  const key = matchKey(query);
+  if (key.length < 5) return null;
+  const allowed = key.length >= 9 ? 3 : 2;
+  let best = null;
+  let bestDistance = allowed + 1;
+
+  options.forEach(opt => {
+    const optKey = matchKey(opt.label);
+    const candidates = [optKey].concat(optKey.split(' ').filter(word => word.length >= 5));
+    candidates.forEach(candidate => {
+      const distance = editDistance(key, candidate);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = opt;
+      }
+    });
+  });
+  return best;
+}
+
 /* -------------------------------------------------------
    Open / Close
    ------------------------------------------------------- */
@@ -1557,13 +1631,11 @@ function openDropdownModal(fieldId) {
   const searchInput = document.getElementById('modalSearchInput');
   const modalIcon = document.getElementById('modalIcon');
   const modalTitleText = document.getElementById('modalTitleText');
-  const addRow = document.getElementById('modalAddRow');
 
   modalIcon.className = 'fa-solid ' + config.icon;
   modalTitleText.textContent = config.title;
   searchInput.value = '';
   searchInput.placeholder = config.placeholder || 'Search...';
-  addRow.classList.toggle('active', !!config.allowCustom);
 
   resetSearchBarMode();
 
@@ -1662,9 +1734,11 @@ function handleModalSearchKeydown(e) {
     return;
   }
 
+  const typedKey = matchKey(typed);
   const match = config.options
     .map(normalizeOption)
-    .find(opt => dedupeKey(opt.label) === dedupeKey(typed));
+    .find(opt => dedupeKey(opt.label) === dedupeKey(typed)
+      || (typedKey && matchKey(opt.label) === typedKey));
 
   if (match) {
     if (config.multi) {
@@ -1677,24 +1751,51 @@ function handleModalSearchKeydown(e) {
     return;
   }
 
+  // Matches are showing: Enter picks the top one rather than adding a new entry.
+  // Adding stays one tap away on the "+ Add" row (or Enter once nothing matches).
+  if (config.enterPicksMatch) {
+    const topRow = document.querySelector('#modalOptionsList li[data-value]');
+    if (topRow) {
+      const value = topRow.dataset.value;
+      const label = topRow.textContent.trim();
+      if (config.multi) {
+        addMultiValue(currentDropdownField, value);
+        inputEl.value = '';
+        if (config.maxSelections === 1) {
+          closeDropdownModal();
+        } else {
+          renderModalOptions(config, '');
+        }
+      } else {
+        selectDropdownOption(value, label);
+      }
+      return;
+    }
+  }
+
   if (config.allowCustom) addCustomFromSearch(currentDropdownField, config, typed);
 }
 
 /* Splits "FRCS, DMCB" into individual entries and adds each one */
 function commitCustomEntries(fieldId, rawText) {
-  rawText.split(',').forEach(token => {
-    const text = token.trim().replace(/\s+/g, ' ');
+  const config = DROPDOWN_CONFIG[fieldId];
+  // Fields with smartLabel hold one free-text name, so commas are not separators
+  const tokens = config.smartLabel ? [rawText] : rawText.split(',');
+  tokens.forEach(token => {
+    const text = customLabelFor(config, token);
     if (!text) return;
     addMultiValue(fieldId, canonicalize(fieldId, text));
   });
 }
 
-/* Reuse the list's own casing when the typed text matches a known option */
+/* Reuse the list's own label when the typed text matches a known option,
+   ignoring case, hyphens, spacing and punctuation */
 function canonicalize(fieldId, text) {
   const config = DROPDOWN_CONFIG[fieldId];
-  const match = config.options
+  const key = matchKey(text);
+  const match = key && config.options
     .map(normalizeOption)
-    .find(opt => dedupeKey(opt.label) === dedupeKey(text));
+    .find(opt => matchKey(opt.label) === key);
   return match ? match.label : text;
 }
 
@@ -1889,7 +1990,7 @@ function addCustomFromSearch(fieldId, config, rawText) {
 
   // Single-select fields take exactly one custom value and close immediately
   if (!config.multi) {
-    const value = canonicalize(fieldId, typed.replace(/\s+/g, ' '));
+    const value = canonicalize(fieldId, customLabelFor(config, typed));
     applySingleCustomValue(fieldId, value);
     closeDropdownModal();
     return;
@@ -1898,11 +1999,12 @@ function addCustomFromSearch(fieldId, config, rawText) {
   commitCustomEntries(fieldId, typed);
   renderModalChips();
 
-  // Fields capped at one selection: return to the list view immediately
-  // instead of leaving the box open for further adds.
+  // Fields capped at one selection are done once the entry is added:
+  // close straight away so the doctor sees it selected on the form.
   if (config.maxSelections && MULTI_SELECTIONS[fieldId].length >= config.maxSelections
-    && currentDropdownField === fieldId && searchBarInAddMode) {
-    toggleSearchAddMode();
+    && currentDropdownField === fieldId) {
+    document.getElementById('modalSearchInput').value = '';
+    closeDropdownModal();
     return;
   }
 
@@ -1964,8 +2066,10 @@ function toggleSearchAddMode() {
   const list = document.getElementById('modalOptionsList');
   const searchBox = document.getElementById('modalSearchBox');
 
-  searchInput.value = '';
-  updateSearchSaveButton(false);
+  // Carry whatever was already typed into the add field so it isn't retyped
+  const carriedText = searchBarInAddMode ? customLabelFor(config, searchInput.value) : '';
+  searchInput.value = carriedText;
+  updateSearchSaveButton(!!carriedText);
 
   if (searchBarInAddMode) {
     searchInput.placeholder = config.addPlaceholder || 'Type to add';
@@ -1975,6 +2079,7 @@ function toggleSearchAddMode() {
     toggleLabel.textContent = 'Cancel';
     list.hidden = true;
     searchBox.classList.add('add-mode');
+    searchInput.select();
   } else {
     searchInput.placeholder = config.placeholder || 'Search...';
     icon.className = 'fa-solid fa-magnifying-glass search-icon';
@@ -2019,10 +2124,12 @@ function renderModalOptions(config, filterText) {
     }
   }
 
+  const queryKey = matchKey(query);
   const filtered = optionList
     .filter(opt => {
       const label = opt.label.toLowerCase();
       if (label.includes(filter)) return true;
+      if (queryKey && matchKey(opt.label).includes(queryKey)) return true;
       const acronym = opt.label
         .split(/\s+/)
         .map(word => word[0] || '')
@@ -2031,12 +2138,43 @@ function renderModalOptions(config, filterText) {
       return filter.length > 0 && acronym.startsWith(filter);
     });
 
-  if (filtered.length === 0) {
+  // Offer to add the typed text unless it already exists (or is already picked)
+  const typedLabel = config.allowCustom && queryKey ? customLabelFor(config, query) : '';
+  const alreadyExists = !!typedLabel && (
+    optionList.some(opt => matchKey(opt.label) === queryKey)
+    || (isMulti && selected.some(v => matchKey(v) === queryKey))
+  );
+  const canAdd = !!typedLabel && !alreadyExists;
+
+  // A probable typo with no matches gets a "Did you mean" shortcut first
+  const closeOption = canAdd && filtered.length === 0
+    ? findCloseOption(optionList, query) : null;
+
+  if (filtered.length === 0 && !canAdd) {
     const li = document.createElement('li');
     li.className = 'no-results';
     li.textContent = 'No matches';
     list.appendChild(li);
     return;
+  }
+
+  if (closeOption) {
+    const li = document.createElement('li');
+    li.className = 'did-you-mean';
+    li.appendChild(document.createTextNode('Did you mean '));
+    const strong = document.createElement('strong');
+    strong.textContent = closeOption.label;
+    li.appendChild(strong);
+    li.appendChild(document.createTextNode('?'));
+    li.addEventListener('click', () => {
+      document.getElementById('modalSearchInput').value = '';
+      if (isMulti) {
+        toggleMultiValue(currentDropdownField, closeOption.value);
+      } else {
+        selectDropdownOption(closeOption.value, closeOption.label);
+      }
+    });
+    list.appendChild(li);
   }
 
   filtered.forEach(opt => {
@@ -2087,6 +2225,31 @@ function renderModalOptions(config, filterText) {
 
     list.appendChild(li);
   });
+
+  if (canAdd) {
+    const li = document.createElement('li');
+    li.className = 'add-option';
+    li.setAttribute('role', 'button');
+    li.tabIndex = 0;
+
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-plus';
+    li.appendChild(icon);
+
+    const text = document.createElement('span');
+    text.textContent = 'Add “' + typedLabel + '”';
+    li.appendChild(text);
+
+    const add = () => addCustomFromSearch(currentDropdownField, config, query);
+    li.addEventListener('click', add);
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        add();
+      }
+    });
+    list.appendChild(li);
+  }
 }
 
 /* -------------------------------------------------------
@@ -2146,12 +2309,6 @@ function getFieldError(id) {
     case 'mciRegdNo':
       if (!value) return 'Registration number is required.';
       if (value.length < 3) return 'Enter a valid registration number.';
-      break;
-
-    case 'otherMedicalInstitute':
-      if (document.getElementById('medicalInstitute').value === 'Other' && !value) {
-        return 'Please specify your medical institute.';
-      }
       break;
 
 
@@ -2236,9 +2393,6 @@ function validateForm() {
     if (getFieldError(id)) isValid = false;
   });
 
-  const instituteSelect = document.getElementById('medicalInstitute');
-  if (instituteSelect.value === 'Other' && getFieldError('otherMedicalInstitute')) isValid = false;
-
   if (getFieldError('aboutSection')) isValid = false;
 
   if (!hasProfilePhoto()) isValid = false;
@@ -2258,7 +2412,7 @@ function handleOnboardingSubmit(event) {
   event.preventDefault();
 
   // Force-validate every field to surface any hidden errors
-  const idsToCheck = getRequiredFieldIds().concat(['otherMedicalInstitute', 'aboutSection']);
+  const idsToCheck = getRequiredFieldIds().concat(['aboutSection']);
   let firstInvalid = null;
   idsToCheck.forEach(id => {
     markFieldInteracted(id);
@@ -2311,9 +2465,7 @@ function handleOnboardingSubmit(event) {
         const country = FELLOWSHIP_COUNTRIES.find(c => c.value === f.country);
         return { country: country ? country.label : '', fellowship: f.fellowship };
       }),
-    medicalInstitute: document.getElementById('medicalInstitute').value === 'Other'
-      ? document.getElementById('otherMedicalInstitute').value.trim()
-      : document.getElementById('medicalInstitute').value,
+    medicalInstitute: document.getElementById('medicalInstitute').value.trim(),
     clinicLocations: collectClinicLocations().map(loc => ({
       locationNumber: loc.locationNumber,
       clinicName: loc.clinicName.trim(),
