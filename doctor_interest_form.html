@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DigiDr - Doctor Interest Form</title>
+  <!-- Google Fonts & FontAwesome / Intl-Tel-Input -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+
+  <style>
+    /* Base Resets & Typography */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1E293B;
+      min-height: 100vh;
+      background-color: #FFFFFF;
+    }
+
+    /* Hero Section (Parent Container) */
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* Background Wrapper */
+    .hero-aurora {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      /* Animated base gradient shifting between blue and orange */
+      background: linear-gradient(115deg,
+          rgba(3, 96, 217, 0.2) 0%,
+          rgba(237, 147, 12, 0.2) 35%,
+          rgba(3, 96, 217, 0.2) 70%,
+          rgba(237, 147, 12, 0.2) 100%);
+      background-size: 320% 320%;
+      animation: hero-aurora-gradient 12s ease-in-out infinite;
+    }
+
+    /* Mesh container that rotates and scales slightly */
+    .hero-aurora__mesh {
+      position: absolute;
+      inset: -35%;
+      transform: translateZ(0);
+      animation: hero-aurora-mesh 15s ease-in-out infinite;
+    }
+
+    /* Blobs base styles */
+    .hero-aurora__blob {
+      position: absolute;
+      display: block;
+    }
+
+    .hero-aurora__blob-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      filter: blur(88px);
+      transform: translateZ(0);
+    }
+
+    /* Blue Blob (Top-Left) */
+    .hero-aurora__blob--blue {
+      width: min(95vw, 720px);
+      height: min(95vw, 720px);
+      top: -28%;
+      left: -22%;
+      animation: hero-aurora-blue 15s ease-in-out infinite;
+    }
+
+    .hero-aurora__blob--blue .hero-aurora__blob-inner {
+      background: radial-gradient(circle,
+          rgba(3, 96, 217, 0.35) 0%,
+          rgba(3, 96, 217, 0.15) 40%,
+          rgba(3, 96, 217, 0) 72%);
+    }
+
+    /* Orange Blob (Bottom-Right) */
+    .hero-aurora__blob--orange {
+      width: min(90vw, 680px);
+      height: min(90vw, 680px);
+      bottom: -28%;
+      right: -22%;
+      animation: hero-aurora-orange 18s ease-in-out infinite;
+      animation-delay: -4.5s;
+    }
+
+    .hero-aurora__blob--orange .hero-aurora__blob-inner {
+      background: radial-gradient(circle,
+          rgba(237, 147, 12, 0.32) 0%,
+          rgba(237, 147, 12, 0.14) 40%,
+          rgba(237, 147, 12, 0) 72%);
+    }
+
+    /* KEYFRAME ANIMATIONS */
+    @keyframes hero-aurora-gradient {
+
+      0%,
+      100% {
+        background-position: 0% 40%;
+      }
+
+      33% {
+        background-position: 50% 60%;
+      }
+
+      66% {
+        background-position: 100% 30%;
+      }
+    }
+
+    @keyframes hero-aurora-mesh {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+      }
+
+      50% {
+        transform: translate3d(6%, 4%, 0) rotate(4deg) scale(1.06);
+      }
+    }
+
+    @keyframes hero-aurora-blue {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate3d(18vw, 10vh, 0) scale(1.12);
+      }
+
+      66% {
+        transform: translate3d(8vw, 20vh, 0) scale(0.94);
+      }
+    }
+
+    @keyframes hero-aurora-orange {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate3d(-16vw, -8vh, 0) scale(1.1);
+      }
+
+      66% {
+        transform: translate3d(-22vw, 6vh, 0) scale(0.92);
+      }
+    }
+
+    /* Container for Content */
+    .container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 580px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Top Center Logo & Tagline Header */
+    .header-logo-container {
+      text-align: center;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo-img {
+      width: 220px;
+      max-width: 80vw;
+      height: auto;
+      display: block;
+      /* filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15)); */
+      transition: transform 0.3s ease;
+    }
+
+    .logo-img:hover {
+      transform: scale(1.02);
+    }
+
+    .tagline-badge {
+      margin-top: 14px;
+      background: rgba(238, 244, 250, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid #CFE3F7;
+      border-radius: 20px;
+      padding: 8px 20px;
+      box-shadow: 0 4px 15px rgba(3, 96, 217, 0.1);
+    }
+
+    .tagline-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0C3B5E;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-align: center;
+      display: block;
+    }
+
+    /* Glassmorphic Form Card */
+    .form-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 24px;
+      padding: 40px 36px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25),
+        0 1px 3px rgba(255, 255, 255, 0.3) inset;
+      animation: cardFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes cardFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .form-title-group {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .form-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0C3B5E;
+      margin-bottom: 8px;
+    }
+
+    .form-subtitle {
+      font-size: 14px;
+      color: #64748B;
+      line-height: 1.5;
+    }
+
+    /* Input Groups & Labels */
+    .form-group {
+      margin-bottom: 22px;
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    .form-label i {
+      color: #0E65D7;
+      margin-right: 6px;
+      width: 16px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 13px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      color: #0F172A;
+      background-color: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      background-color: #FFFFFF;
+      border-color: #0E65D7;
+      box-shadow: 0 0 0 4px rgba(14, 101, 215, 0.12);
+    }
+
+    /* Selected Email Field (Readonly Style) */
+    .form-input.readonly-email {
+      background-color: #EFF6FF;
+      border-color: #BFDBFE;
+      color: #1E40AF;
+      font-weight: 600;
+      text-align: center;
+      padding-right: 16px;
+    }
+
+    .email-badge {
+      position: absolute;
+      right: 12px;
+      background: #DBEAFE;
+      color: #1D4ED8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+    }
+
+    /* Doctor Full Name (constant "Dr." prefix) */
+    .name-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .name-prefix {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1E40AF;
+      background-color: #EFF6FF;
+      border: 1.5px solid #BFDBFE;
+      border-radius: 12px;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Two-column row for location fields */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-row .form-group {
+      min-width: 0;
+    }
+
+    /* Single-column form; State and City / District share a row and fade in once the pincode is resolved */
+    .form-grid {
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 14px;
+    }
+
+    .form-grid > .form-group {
+      grid-column: 1 / -1;
+      min-width: 0;
+    }
+
+    /* Pincode lookup indicator, tucked inside the right end of the input */
+    .pin-wrap {
+      position: relative;
+    }
+
+    .pin-status {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #0E65D7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .pin-status.active {
+      opacity: 1;
+    }
+
+    /* Wrong pincode: red outline and a short message tucked into the gap under the input */
+    .form-input.input-error,
+    .form-input.input-error:focus {
+      border-color: #DC2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+    }
+
+    .pin-error {
+      position: absolute;
+      left: 2px;
+      top: calc(100% + 3px);
+      font-size: 12px;
+      font-weight: 500;
+      color: #DC2626;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+    }
+
+    .pin-error.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Phone and Email share a row on desktop */
+    .form-grid > .form-group.half {
+      grid-column: span 1;
+    }
+
+    .form-grid .loc-field {
+      display: none;
+    }
+
+    /* Speciality and Pincode always share one row; State and City appear on the row below */
+    .form-grid .loc-pincode,
+    .form-grid .loc-speciality {
+      grid-column: span 1;
+    }
+
+    .form-grid.revealed .loc-field {
+      display: block;
+      grid-column: span 1;
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* Country Code Phone Styling */
+    .iti {
+      width: 100%;
+    }
+
+    .iti__country-list {
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      border: 1px solid #E2E8F0;
+      max-height: 200px;
+      z-index: 10;
+    }
+
+    /* Custom Dropdown Component Styling */
+    .custom-select-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select-trigger {
+      width: 100%;
+      padding: 13px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      color: #0F172A;
+      background-color: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.25s ease;
+    }
+
+    .custom-select-trigger:hover {
+      background-color: #FFFFFF;
+      border-color: #CBD5E1;
+    }
+
+    .custom-select-container.open .custom-select-trigger {
+      background-color: #FFFFFF;
+      border-color: #0360D9;
+      box-shadow: 0 0 0 4px rgba(3, 96, 217, 0.12);
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .custom-select-trigger .placeholder-text {
+      color: #475569;
+    }
+
+    /* Standard input placeholder styling */
+    .form-input::placeholder {
+      color: #475569;
+      opacity: 1;
+      /* Override default browser light grey */
+    }
+
+    .form-input:-ms-input-placeholder {
+      color: #475569;
+    }
+
+    .form-input::-ms-input-placeholder {
+      color: #475569;
+    }
+
+    .custom-select-trigger .selected-text {
+      color: #0F172A;
+      font-weight: 500;
+    }
+
+    .custom-select-trigger span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .custom-select-trigger .dropdown-arrow {
+      flex: 0 0 auto;
+      margin-left: 8px;
+    }
+
+    .dropdown-arrow {
+      color: #64748B;
+      font-size: 14px;
+      transition: transform 0.3s ease;
+    }
+
+    .custom-select-container.open .dropdown-arrow {
+      transform: rotate(180deg);
+      color: #0E65D7;
+    }
+
+    /* Modal Overlay Backdrop */
+    .speciality-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 28, 46, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .speciality-modal-backdrop.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Modal Content Box */
+    .speciality-modal-card {
+      width: 100%;
+      max-width: 540px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      background: #FFFFFF;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      transform: scale(0.92) translateY(10px);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .speciality-modal-backdrop.active .speciality-modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Modal Header */
+    .modal-header {
+      padding: 18px 24px;
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0C3B5E;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close-btn {
+      background: #E2E8F0;
+      color: #64748B;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: #CBD5E1;
+      color: #0F172A;
+    }
+
+    /* Search Box Inside Modal */
+    .modal-search-box {
+      position: relative;
+      padding: 14px 20px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #F1F5F9;
+    }
+
+    .modal-search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 10px;
+      outline: none;
+      background: #F8FAFC;
+      transition: all 0.2s ease;
+    }
+
+    .modal-search-box input:focus {
+      background: #FFFFFF;
+      border-color: #0E65D7;
+      box-shadow: 0 0 0 3px rgba(14, 101, 215, 0.12);
+    }
+
+    .modal-search-box input::placeholder {
+      color: #475569;
+      opacity: 1;
+    }
+
+    .modal-search-box input:-ms-input-placeholder {
+      color: #475569;
+    }
+
+    .modal-search-box input::-ms-input-placeholder {
+      color: #475569;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      font-size: 14px;
+      transition: opacity 0.25s ease, transform 0.25s ease, color 0.25s ease;
+    }
+
+    /* Search and plus icons share a spot and cross-fade on a loop while the box is empty */
+    .search-icon.add-icon {
+      opacity: 0;
+    }
+
+    .modal-search-box:not(.typing) .search-icon:not(.add-icon) {
+      animation: iconSearchCycle 4s ease-in-out infinite;
+    }
+
+    .modal-search-box:not(.typing) .search-icon.add-icon {
+      animation: iconAddCycle 4s ease-in-out infinite;
+    }
+
+    /* Boxes without an add option keep the plain search icon */
+    .modal-search-box.static .search-icon {
+      animation: none !important;
+    }
+
+    @keyframes iconSearchCycle {
+      0%, 40% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+      50%, 90% { opacity: 0; transform: translateY(-50%) rotate(90deg) scale(0.6); }
+      100% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+    }
+
+    @keyframes iconAddCycle {
+      0%, 40% { opacity: 0; transform: translateY(-50%) rotate(-90deg) scale(0.6); }
+      50%, 90% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-50%) rotate(-90deg) scale(0.6); }
+    }
+
+    /* Options List inside Modal */
+    .speciality-options-list {
+      list-style: none;
+      max-height: 480px;
+      overflow-y: auto;
+      padding: 8px 0;
+      margin: 0;
+    }
+
+    .speciality-options-list li {
+      padding: 12px 24px;
+      font-size: 15px;
+      color: #000000;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .speciality-options-list li:hover {
+      background-color: #F0F6FE;
+      color: #0E65D7;
+      font-weight: 500;
+    }
+
+    .speciality-options-list li.selected {
+      background-color: #EFF6FF;
+      color: #0E65D7;
+      font-weight: 600;
+    }
+
+    .speciality-options-list li.selected::after {
+      content: "\f00c";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      font-size: 14px;
+      color: #0E65D7;
+    }
+
+    .other-plus-icon {
+      color: #94A3B8;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    .speciality-options-list li:hover .other-plus-icon {
+      color: #0E65D7;
+      transform: scale(1.1);
+    }
+
+    /* Align Other option layout to left-start side */
+    .speciality-options-list li[data-value="Other"] {
+      justify-content: flex-start;
+      color: #1E40AF;
+      background-color: #F8FAFF;
+    }
+
+    .speciality-options-list li[data-value="Other"] .other-plus-icon {
+      color: #3B82F6;
+    }
+
+    .speciality-options-list li[data-value="Other"].selected {
+      background-color: #EFF6FF;
+      color: #0E65D7;
+    }
+
+    .speciality-options-list li[data-value="Other"]:hover {
+      background-color: #F0F6FE;
+      color: #0E65D7;
+    }
+
+    .speciality-options-list li[data-value="Other"]:hover .other-plus-icon {
+      color: #0E65D7;
+    }
+
+    .speciality-options-list li[data-value="Other"].selected::after {
+      content: "\f00c";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      font-size: 14px;
+      color: #0E65D7;
+      margin-left: auto;
+      /* Push the checkmark icon to the far right side */
+    }
+
+    .speciality-options-list li[data-value="Other"].selected .other-plus-icon {
+      color: #0E65D7;
+    }
+
+    /* "+ Add '<typed text>'" row pinned under the matches */
+    .speciality-options-list li.add-option {
+      justify-content: flex-start;
+      gap: 12px;
+      margin: 6px 16px 4px;
+      padding: 9px 12px;
+      color: #0C3B5E;
+      font-weight: 600;
+      background: #EAF3FE;
+      border: 1.5px solid #BEDCFB;
+      border-radius: 12px;
+    }
+
+    .speciality-options-list li.add-option:hover {
+      background: #DCEBFD;
+      border-color: #0E65D7;
+      color: #0C3B5E;
+    }
+
+    .speciality-options-list li.add-option i {
+      flex: none;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #0E65D7;
+      color: #FFFFFF;
+      font-size: 11px;
+    }
+
+    .speciality-options-list li.add-option span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Other Specialty Conditional Input */
+    #otherSpecialityGroup {
+      display: none;
+      margin-top: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Checkbox / Terms */
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 24px;
+      margin-bottom: 28px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: #0E65D7;
+      cursor: pointer;
+    }
+
+    .checkbox-label {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .checkbox-label a {
+      color: #0E65D7;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .checkbox-label a:hover {
+      text-decoration: underline;
+    }
+
+    /* Submit Button */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #0E65D7;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(14, 101, 215, 0.35);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #0C58BE;
+      box-shadow: 0 12px 25px rgba(14, 101, 215, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      background: #E2E8F0;
+      color: #94A3B8;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+      pointer-events: none;
+      /* clicks fall through to .submit-wrap for analytics */
+    }
+
+    .submit-wrap {
+      cursor: not-allowed;
+    }
+
+    .submit-wrap:has(.submit-btn:not(:disabled)) {
+      cursor: default;
+    }
+
+    /* Success Message State */
+    .success-container {
+      display: none;
+      text-align: center;
+      padding: 30px 10px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .success-icon {
+      width: 70px;
+      height: 70px;
+      background: #DEF7EC;
+      color: #0E9F6E;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+
+    .success-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0C3B5E;
+      margin-bottom: 10px;
+    }
+
+    .success-desc {
+      font-size: 15px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .visit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #0E65D7;
+      color: #FFFFFF;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(14, 101, 215, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .visit-btn:hover {
+      background: #0C58BE;
+      box-shadow: 0 12px 25px rgba(14, 101, 215, 0.45);
+      transform: translateY(-2px);
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 640px) {
+      /* Every field gets its own row on mobile */
+      .form-grid.form-grid > .half,
+      .form-grid.form-grid .loc-pincode,
+      .form-grid.form-grid .loc-field,
+      .form-grid.form-grid .loc-speciality {
+        grid-column: 1 / -1;
+      }
+
+      .form-card {
+        padding: 28px 18px;
+        border-radius: 20px;
+      }
+
+      .logo-img {
+        width: 190px;
+      }
+
+      .tagline-badge {
+        padding: 6px 14px;
+        margin-top: 10px;
+      }
+
+      .tagline-text {
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+
+      .form-title {
+        font-size: 22px;
+        line-height: 1.3;
+      }
+
+      .form-subtitle {
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: #475569;
+        /* Higher contrast on mobile */
+      }
+
+      .form-label {
+        font-size: 14px;
+      }
+
+      .form-input,
+      .custom-select-trigger {
+        font-size: 15px;
+        /* Prevents iOS auto-zoom on input focus */
+        padding: 13px 14px;
+      }
+
+      .hero-section {
+        padding: 24px 12px;
+      }
+
+      /* Modal Mobile Sizing & Touch Readability */
+      .speciality-modal-backdrop {
+        padding: 12px;
+        align-items: flex-end;
+        /* Bottom sheet layout feel on mobile screens */
+      }
+
+      .speciality-modal-card {
+        max-width: 100%;
+        max-height: 82vh;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        border-top-left-radius: 24px;
+        border-top-right-radius: 24px;
+      }
+
+      .modal-header {
+        padding: 16px 18px;
+      }
+
+      .modal-title {
+        font-size: 15px;
+      }
+
+      .modal-search-box {
+        padding: 12px 16px;
+      }
+
+      .modal-search-box input {
+        font-size: 15px;
+        /* Prevents iOS auto-zoom */
+      }
+
+      .speciality-options-list {
+        max-height: 55vh;
+        /* Comfortable scroll area for mobile fingers */
+      }
+
+      .speciality-options-list li {
+        padding: 14px 18px;
+        /* Larger touch targets */
+        font-size: 15px;
+      }
+    }
+  </style>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9XEQ09L5DP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-9XEQ09L5DP');
+
+    // Safe event helper: never throws (e.g. if blocked by an ad blocker). No PII (email/name/phone) is ever sent.
+    // Sends each event to both GA4 and Microsoft Clarity.
+    function trackEvent(name, params) {
+      try {
+        // transport_type 'beacon' lets events (e.g. form_abandon) survive page unload
+        gtag('event', name, Object.assign({ form_name: 'doctor_interest_form', transport_type: 'beacon' }, params || {}));
+      } catch (e) { /* analytics must never break the form */ }
+      try {
+        if (typeof window.clarity === 'function') {
+          window.clarity('event', name);
+          // Clarity tags: filterable key/value pairs on sessions/recordings
+          Object.keys(params || {}).forEach(function (k) {
+            if (params[k] !== undefined && params[k] !== null && k !== 'link_url') {
+              window.clarity('set', k, String(params[k]));
+            }
+          });
+        }
+      } catch (e) { /* analytics must never break the form */ }
+    }
+  </script>
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "z1nrcr0zr0");
+  </script>
+</head>
+
+<body>
+
+  <section class="hero-section">
+    <!-- Dynamic Aurora Background -->
+    <div class="hero-aurora" aria-hidden="true">
+      <div class="hero-aurora__mesh">
+        <div class="hero-aurora__blob hero-aurora__blob--blue">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+        <div class="hero-aurora__blob hero-aurora__blob--orange">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+
+      <!-- Top Center DigiDr Logo & Tagline Header -->
+      <div class="header-logo-container">
+        <a href="https://digidr.app" target="_blank" title="DigiDr Homepage">
+          <img src="https://storage.googleapis.com/digidr/logo.png" alt="DigiDr Logo" class="logo-img">
+        </a>
+        <div class="tagline-badge">
+          <span class="tagline-text">AI Digital Infrastructure for Doctors</span>
+        </div>
+      </div>
+
+      <!-- Doctor Interest Form Card -->
+      <div class="form-card">
+
+        <!-- Form Content -->
+        <div id="formContent">
+          <div class="form-title-group">
+            <h2 class="form-title">Express Your Interest</h2>
+            <!-- <p class="form-subtitle">Join the exclusive network of medical professionals leveraging next-gen AI digital
+              infrastructure.</p> -->
+          </div>
+
+          <form id="doctorInterestForm" onsubmit="handleFormSubmit(event)">
+
+            <div class="form-grid" id="formGrid">
+
+            <!-- Email Field (Selected / Pre-filled) -->
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input type="email" id="doctorEmail" class="form-input readonly-email" value="dr.smith@hospital.org"
+                  readonly required>
+              </div>
+            </div>
+
+            <!-- Doctor Full Name (constant "Dr." prefix) -->
+            <div class="form-group">
+              <label class="form-label" for="doctorName">
+                <i class="fa-solid fa-user-doctor"></i>Full Name
+              </label>
+              <div class="name-row">
+                <span class="name-prefix">Dr.</span>
+                <input type="text" id="doctorName" class="form-input" placeholder="John Doe"
+                  autocomplete="name" required>
+              </div>
+            </div>
+
+            <!-- Phone Number with Country Codes -->
+            <div class="form-group half">
+              <label class="form-label" for="doctorPhone">
+                <i class="fa-solid fa-phone"></i>Phone Number
+              </label>
+              <input type="tel" id="doctorPhone" class="form-input" placeholder="1234567890" required>
+            </div>
+
+            <!-- Contact Email (editable, separate from the pre-filled selected email above) -->
+            <div class="form-group half">
+              <label class="form-label" for="doctorContactEmail">
+                <i class="fa-solid fa-envelope"></i>Email Address
+              </label>
+              <input type="email" id="doctorContactEmail" class="form-input" placeholder="doctor@example.com"
+                autocomplete="email" required>
+            </div>
+
+            <!-- Doctor Speciality Custom Trigger (modal below) -->
+            <div class="form-group loc-speciality">
+              <label class="form-label">
+                <i class="fa-solid fa-stethoscope"></i>Speciality
+              </label>
+
+              <!-- Hidden input for form submission -->
+              <input type="hidden" id="doctorSpeciality" name="doctorSpeciality" required>
+
+              <!-- Custom Select Trigger Box -->
+              <div class="custom-select-trigger" id="customSelectTrigger" onclick="openSpecialityModal()">
+                <span id="selectedSpecialityText" class="placeholder-text">Select...</span>
+                <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+              </div>
+            </div>
+
+            <!-- Conditional input for "Other" -->
+            <div id="otherSpecialityGroup" style="margin-top: -10px; margin-bottom: 22px; grid-column: 1 / -1;">
+              <input type="text" id="otherSpeciality" class="form-input"
+                placeholder="Please specify your medical speciality">
+            </div>
+
+            <!-- Location: Pincode, State, City / District -->
+            <div class="form-group loc-pincode">
+              <label class="form-label" for="doctorPincode">
+                <i class="fa-solid fa-location-dot"></i>Pincode
+              </label>
+              <div class="pin-wrap">
+                <input type="text" id="doctorPincode" class="form-input" placeholder="Enter Pincode"
+                  autocomplete="postal-code" maxlength="10" required>
+                <span class="pin-status" id="pinStatus" aria-live="polite">
+                  <i class="fa-solid fa-spinner fa-spin"></i>Fetching
+                </span>
+                <span class="pin-error" id="pinError" role="alert">Wrong pincode</span>
+              </div>
+            </div>
+
+            <!-- State & City / District stay hidden until the pincode is resolved -->
+              <div class="form-group loc-field">
+                <label class="form-label">
+                  <i class="fa-solid fa-map"></i>State
+                </label>
+                <!-- Modal picker for India (same design as Speciality); free-text fallback for other phone countries.
+                     The hidden select just holds the chosen value. -->
+                <select id="doctorState" autocomplete="address-level1" style="display:none;">
+                  <option value="" disabled selected>Select state</option>
+                </select>
+                <div class="custom-select-trigger" id="stateTrigger" onclick="openStateModal()">
+                  <span id="selectedStateText" class="placeholder-text">Select state</span>
+                  <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                </div>
+                <input type="text" id="doctorStateText" class="form-input" placeholder="State / Province"
+                  autocomplete="address-level1" style="display:none;">
+              </div>
+              <div class="form-group loc-field">
+                <label class="form-label" for="doctorCity">
+                  <i class="fa-solid fa-city"></i>City / District
+                </label>
+                <input type="text" id="doctorCity" class="form-input" placeholder="City / District"
+                  autocomplete="address-level2" required>
+              </div>
+
+            </div>
+
+            <!-- Submit Button -->
+            <!-- Wrapper catches clicks on the disabled button (disabled buttons don't fire click events) -->
+            <div id="submitWrap" class="submit-wrap">
+              <button type="submit" id="submitBtn" class="submit-btn" disabled>
+                <span>Submit Interest</span>
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Success Message Container -->
+        <div id="successContent" class="success-container">
+          <div class="success-icon">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h3 class="success-title">Thank You, Doctor!</h3>
+          <p class="success-desc">Your expression of interest has been successfully submitted. Our DigiDr medical
+            onboarding specialist will reach out to you shortly.</p>
+          <a href="https://digidr.app" class="visit-btn">
+            <span>Visit DigiDr</span>
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- State Selection Modal Overlay (reuses the Speciality modal styling) -->
+  <div class="speciality-modal-backdrop" id="stateModalBackdrop" onclick="handleStateBackdropClick(event)">
+    <div class="speciality-modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-map" style="color:#0360D9;"></i>
+          <span>Select Your State</span>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeStateModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-search-box static">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="stateSearchInput" placeholder="Search state..." oninput="filterStates(this.value)">
+      </div>
+      <ul class="speciality-options-list" id="stateOptionsList"></ul>
+    </div>
+  </div>
+
+  <!-- Speciality Selection Modal Overlay -->
+  <div class="speciality-modal-backdrop" id="specialityModalBackdrop" onclick="handleBackdropClick(event)">
+    <div class="speciality-modal-card">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-stethoscope" style="color:#0360D9;"></i>
+          <span>Select Your Speciality</span>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeSpecialityModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Search Bar -->
+      <div class="modal-search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <i class="fa-solid fa-plus search-icon add-icon"></i>
+        <input type="text" id="specialitySearchInput" placeholder="Search or add medical speciality..."
+          oninput="filterSpecialities(this.value)">
+      </div>
+
+      <!-- Options List -->
+      <ul class="speciality-options-list" id="specialityOptionsList">
+        <li data-value="Cardiology" onclick="selectSpeciality('Cardiology')">Cardiology</li>
+        <li data-value="Dermatology" onclick="selectSpeciality('Dermatology')">Dermatology</li>
+        <li data-value="Endocrinology" onclick="selectSpeciality('Endocrinology')">Endocrinology</li>
+        <li data-value="Gastroenterology" onclick="selectSpeciality('Gastroenterology')">Gastroenterology</li>
+        <li data-value="General Surgery" onclick="selectSpeciality('General Surgery')">General Surgery</li>
+        <li data-value="Internal Medicine" onclick="selectSpeciality('Internal Medicine')">Internal Medicine</li>
+        <li data-value="Intensivist / Critical Care" onclick="selectSpeciality('Intensivist / Critical Care')">
+          Intensivist / Critical Care</li>
+        <li data-value="Neurology" onclick="selectSpeciality('Neurology')">Neurology</li>
+        <li data-value="Obstetrics & Gynecology" onclick="selectSpeciality('Obstetrics & Gynecology')">Obstetrics &
+          Gynecology</li>
+        <li data-value="Oncology" onclick="selectSpeciality('Oncology')">Oncology</li>
+        <li data-value="Ophthalmology" onclick="selectSpeciality('Ophthalmology')">Ophthalmology</li>
+        <li data-value="Orthopedics" onclick="selectSpeciality('Orthopedics')">Orthopedics</li>
+        <li data-value="Pediatrics" onclick="selectSpeciality('Pediatrics')">Pediatrics</li>
+        <li data-value="Psychiatry" onclick="selectSpeciality('Psychiatry')">Psychiatry</li>
+        <li data-value="Pulmonology" onclick="selectSpeciality('Pulmonology')">Pulmonology</li>
+        <li data-value="Radiology" onclick="selectSpeciality('Radiology')">Radiology</li>
+        <li data-value="Urology" onclick="selectSpeciality('Urology')">Urology</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- International Phone Input JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+
+  <script>
+    // ---- Analytics session state ----
+    const formState = {
+      startTime: Date.now(),
+      started: false,       // user has interacted with at least one field
+      lastField: null,      // last field the user touched
+      filled: {},           // fields completed so far
+      ready: false,         // form currently valid / submit enabled
+      submitted: false,
+      abandonSent: false
+    };
+
+    function secondsOnForm() {
+      return Math.round((Date.now() - formState.startTime) / 1000);
+    }
+
+    function markStarted(field) {
+      formState.lastField = field;
+      if (!formState.started) {
+        formState.started = true;
+        trackEvent('form_start', { first_field: field });
+      }
+    }
+
+    // Abandonment: user leaves/hides the page after starting but before submitting
+    function reportLeave(trigger) {
+      trackEvent('tab_hidden', { trigger: trigger, time_on_form_sec: secondsOnForm() });
+      if (formState.started && !formState.submitted && !formState.abandonSent) {
+        formState.abandonSent = true;
+        trackEvent('form_abandon', {
+          trigger: trigger,
+          last_field: formState.lastField,
+          fields_completed: Object.keys(formState.filled).length,
+          form_ready: formState.ready,
+          time_on_form_sec: secondsOnForm()
+        });
+      }
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        reportLeave('visibility_hidden');
+      } else if (formState.abandonSent && !formState.submitted) {
+        // User came back after we logged an abandon
+        formState.abandonSent = false;
+        trackEvent('form_resume', { time_on_form_sec: secondsOnForm() });
+      }
+    });
+    window.addEventListener('pagehide', function () {
+      if (document.visibilityState !== 'hidden') reportLeave('pagehide');
+    });
+
+    // Initialize Phone Input with Country Codes
+    let phoneInput;
+    document.addEventListener("DOMContentLoaded", function () {
+      const input = document.querySelector("#doctorPhone");
+      phoneInput = window.intlTelInput(input, {
+        initialCountry: "in",
+        preferredCountries: ["in", "us", "gb", "ae", "sg"],
+        separateDialCode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+      });
+
+      // Parse email parameter from URL if present e.g., ?email=dr.john@example.com
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailParam = urlParams.get('email');
+      if (emailParam) {
+        document.getElementById('doctorEmail').value = emailParam;
+      }
+
+      // Add input event listeners to track validation status
+      const emailInput = document.getElementById('doctorEmail');
+      const phoneInputEl = document.getElementById('doctorPhone');
+      const otherInput = document.getElementById('otherSpeciality');
+
+      const nameInput = document.getElementById('doctorName');
+
+      emailInput.addEventListener('input', validateForm);
+      // "Dr." is a fixed prefix, so drop it if the user types or pastes it again
+      nameInput.addEventListener('input', function () {
+        this.value = this.value.replace(/^\s*dr\.?\s+/i, '');
+        validateForm();
+      });
+      phoneInputEl.addEventListener('input', validateForm);
+      document.getElementById('doctorContactEmail').addEventListener('input', validateForm);
+      otherInput.addEventListener('input', validateForm);
+
+      // Force digits only and prevent entering more characters than standard for selected country
+      phoneInputEl.addEventListener('input', function (e) {
+        // Remove non-numeric characters just in case of copy-paste
+        const value = this.value.replace(/\D/g, '');
+        this.value = value;
+
+        // Dynamic max length restriction based on country format
+        const activeCountry = phoneInput.getSelectedCountryData();
+        if (activeCountry && activeCountry.iso2 === 'in') {
+          // Standard limit for India is 10 digits
+          if (value.length > 10) {
+            this.value = value.substring(0, 10);
+          }
+        } else {
+          // Fallback generic limit for international codes
+          if (value.length > 15) {
+            this.value = value.substring(0, 15);
+          }
+        }
+        validateForm();
+      });
+
+      // Prevent keypress if max limit is already met
+      phoneInputEl.addEventListener('keypress', function (e) {
+        if (e.key < '0' || e.key > '9') {
+          e.preventDefault();
+          return;
+        }
+
+        const value = this.value.replace(/\D/g, '');
+        const activeCountry = phoneInput.getSelectedCountryData();
+        if (activeCountry && activeCountry.iso2 === 'in' && value.length >= 10) {
+          e.preventDefault();
+        } else if (value.length >= 15) {
+          e.preventDefault();
+        }
+      });
+
+      // Format & validate on country change
+      phoneInputEl.addEventListener('countrychange', function () {
+        phoneInputEl.value = ''; // Reset input to match new country length cleanly
+        // Pincode format depends on the phone country, so reset it when that changes
+        document.getElementById('doctorPincode').value = '';
+        cancelPincodeLookup(); // an India lookup must not fill fields after switching country
+        syncStateField();
+        syncLocationReveal();
+        validateForm();
+      });
+
+      // ---- Location fields ----
+      const stateSelect = document.getElementById('doctorState');
+      const stateText = document.getElementById('doctorStateText');
+      const cityInput = document.getElementById('doctorCity');
+      const pincodeInput = document.getElementById('doctorPincode');
+      INDIA_STATES.forEach(function (s) {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        stateSelect.appendChild(opt);
+        const li = document.createElement('li');
+        li.setAttribute('data-value', s);
+        li.textContent = s;
+        li.addEventListener('click', function () { selectState(s); });
+        document.getElementById('stateOptionsList').appendChild(li);
+      });
+      syncStateField();
+      [stateSelect, stateText, cityInput].forEach(function (el) {
+        el.addEventListener('input', validateForm);
+        el.addEventListener('change', validateForm);
+      });
+      pincodeInput.addEventListener('input', function () {
+        // India pincodes are 6 digits; other countries use varied alphanumeric formats
+        if (isIndia()) this.value = this.value.replace(/\D/g, '').substring(0, 6);
+        cancelPincodeLookup(); // clears any previous error / in-flight lookup
+        if (isIndia() && this.value.length === 6) {
+          // A 6-digit Indian pincode that can't exist (e.g. starts with 0) is wrong without asking the API
+          if (/^[1-9]/.test(this.value)) lookupPincode(this.value);
+          else {
+            setPincodeError(true);
+            document.getElementById('formGrid').classList.add('revealed');
+          }
+        }
+        syncLocationReveal();
+        validateForm();
+      });
+
+      // ---- GA4 event tracking ----
+      const emailPrefilled = !!emailParam;
+      trackEvent('interest_form_view', { email_prefilled: emailPrefilled });
+
+      // First interaction with each field (focus) + completion (blur with value)
+      const fieldMap = {
+        doctorName: nameInput,
+        doctorPhone: phoneInputEl,
+        doctorContactEmail: document.getElementById('doctorContactEmail'),
+        doctorState: stateSelect,
+        doctorStateText: stateText,
+        doctorCity: document.getElementById('doctorCity'),
+        doctorPincode: document.getElementById('doctorPincode'),
+        otherSpeciality: otherInput
+      };
+      Object.keys(fieldMap).forEach(function (field) {
+        const el = fieldMap[field];
+        let started = false;
+        el.addEventListener('focus', function () {
+          markStarted(field);
+          if (!started) {
+            started = true;
+            trackEvent('form_field_focus', { field_name: field });
+          }
+        });
+        el.addEventListener('blur', function () {
+          if (el.value.trim()) {
+            formState.filled[field] = true;
+            trackEvent('form_field_complete', { field_name: field });
+          } else {
+            delete formState.filled[field];
+          }
+        });
+      });
+
+      // Phone validation failure (on blur with a non-empty but invalid number)
+      phoneInputEl.addEventListener('blur', function () {
+        if (this.value.trim() && !phoneInput.isValidNumber()) {
+          const errCodes = ['unknown', 'invalid_country_code', 'too_short', 'too_long', 'not_a_number'];
+          let code = 'invalid';
+          try { code = errCodes[phoneInput.getValidationError()] || 'invalid'; } catch (e) { }
+          const c = phoneInput.getSelectedCountryData();
+          trackEvent('phone_validation_error', { reason: code, country: c && c.iso2 });
+        }
+      });
+
+      // Phone country dropdown opened
+      const flagBtn = document.querySelector('.iti__selected-flag');
+      if (flagBtn) {
+        flagBtn.addEventListener('click', function () {
+          markStarted('phone_country');
+          trackEvent('phone_country_dropdown_open');
+        });
+      }
+
+      // Speciality trigger box clicked
+      document.getElementById('customSelectTrigger').addEventListener('click', function () {
+        markStarted('doctorSpeciality');
+        trackEvent('speciality_trigger_click', { has_selection: !!document.getElementById('doctorSpeciality').value });
+      });
+
+      // Click on the disabled submit button (wrapper receives it since the button has pointer-events: none)
+      document.getElementById('submitWrap').addEventListener('click', function () {
+        if (document.getElementById('submitBtn').disabled) {
+          const missing = [];
+          if (!nameInput.value.trim()) missing.push('name');
+          if (!phoneInputEl.value.trim() || !phoneInput.isValidNumber()) missing.push('phone');
+          if (!isContactEmailValid()) missing.push('contact_email');
+          if (!getState()) missing.push('state');
+          if (!document.getElementById('doctorCity').value.trim()) missing.push('city');
+          if (!isPincodeValid()) missing.push('pincode');
+          const sp = document.getElementById('doctorSpeciality').value;
+          if (!sp) missing.push('speciality');
+          else if (sp === 'Other' && !otherInput.value.trim()) missing.push('other_speciality');
+          trackEvent('submit_blocked_invalid', { missing_fields: missing.join(',') });
+        }
+      });
+
+      // Phone country dropdown change
+      phoneInputEl.addEventListener('countrychange', function () {
+        const c = phoneInput.getSelectedCountryData();
+        trackEvent('phone_country_change', { country: c && c.iso2 });
+      });
+
+      // Header logo, success-screen link, modal close button
+      document.querySelector('.header-logo-container a').addEventListener('click', function () {
+        trackEvent('logo_click', { link_url: this.href });
+      });
+      document.querySelector('.visit-btn').addEventListener('click', function () {
+        trackEvent('visit_digidr_click', { link_url: this.href });
+      });
+      document.querySelector('#specialityModalBackdrop .modal-close-btn').addEventListener('click', function () {
+        trackEvent('speciality_modal_close', { method: 'close_button' });
+      });
+
+      // Speciality search (debounced, logs term length only)
+      let searchTimer;
+      document.getElementById('specialitySearchInput').addEventListener('input', function () {
+        const len = this.value.trim().length;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          if (len) trackEvent('speciality_search', { search_term_length: len });
+        }, 800);
+      });
+
+      // Submit button click
+      document.getElementById('submitBtn').addEventListener('click', function () {
+        trackEvent('submit_click');
+      });
+
+      // Perform initial check
+      validateForm();
+    });
+
+    const INDIA_STATES = [
+      'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh',
+      'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana',
+      'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep',
+      'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry',
+      'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand',
+      'West Bengal'
+    ];
+
+    // State is a dropdown for India (phone +91); other countries get a free-text field
+    function syncStateField() {
+      const india = isIndia();
+      document.getElementById('stateTrigger').style.display = india ? '' : 'none';
+      document.getElementById('doctorStateText').style.display = india ? 'none' : '';
+      // A hidden required control would block native form submission
+      document.getElementById('doctorStateText').required = !india;
+      document.getElementById('doctorState').value = '';
+      document.getElementById('doctorStateText').value = '';
+      renderStateTrigger();
+    }
+
+    // Mirror the hidden select's value into the trigger box
+    function renderStateTrigger() {
+      const select = document.getElementById('doctorState');
+      const text = document.getElementById('selectedStateText');
+      const val = select.value;
+      text.textContent = val || select.options[0].textContent;
+      text.classList.toggle('selected-text', !!val);
+      text.classList.toggle('placeholder-text', !val);
+      document.querySelectorAll('#stateOptionsList li').forEach(li => {
+        li.classList.toggle('selected', li.getAttribute('data-value') === val);
+      });
+    }
+
+    // State Modal Control Functions
+    function openStateModal() {
+      markStarted('doctorState');
+      trackEvent('state_modal_open');
+      const searchInput = document.getElementById('stateSearchInput');
+      searchInput.value = '';
+      filterStates('');
+      document.getElementById('stateModalBackdrop').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => searchInput.focus(), 150);
+    }
+
+    function closeStateModal() {
+      document.getElementById('stateModalBackdrop').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function handleStateBackdropClick(e) {
+      if (e.target.id === 'stateModalBackdrop') closeStateModal();
+    }
+
+    function selectState(val) {
+      document.getElementById('doctorState').value = val;
+      formState.filled.doctorState = true;
+      trackEvent('state_select', { state: val });
+      renderStateTrigger();
+      closeStateModal();
+      validateForm();
+    }
+
+    function filterStates(query) {
+      const filter = query.trim().toLowerCase();
+      document.querySelectorAll('#stateOptionsList li').forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(filter) ? 'flex' : 'none';
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeStateModal();
+    });
+
+    function getState() {
+      return (isIndia()
+        ? document.getElementById('doctorState').value
+        : document.getElementById('doctorStateText').value).trim();
+    }
+
+    // Show State and City / District once the pincode is valid; for India, only after the lookup
+    // has finished (found or failed) so the doctor can type manually when it fails
+    let resolvedPincode = '';
+    function syncLocationReveal() {
+      const pin = document.getElementById('doctorPincode').value.trim();
+      const ready = isPincodeValid() && (!isIndia() || resolvedPincode === pin);
+      // Once revealed they stay visible, even if the pincode is later edited or cleared
+      if (ready) document.getElementById('formGrid').classList.add('revealed');
+    }
+
+    // Auto-fill state and city/district from the pincode (India only)
+    let pincodeLookupToken = 0;
+    const PINCODE_TIMEOUT_MS = 4000;
+    let pincodeAbort = null;
+
+    // "Fetching" spinner inside the pincode field while the lookup runs
+    function setPincodeChecking(on) {
+      document.getElementById('pinStatus').classList.toggle('active', on);
+    }
+
+    // Wrong pincode: red outline + message, and the form can't be submitted
+    let pincodeError = false;
+    function setPincodeError(on) {
+      pincodeError = on;
+      document.getElementById('doctorPincode').classList.toggle('input-error', on);
+      document.getElementById('pinError').classList.toggle('active', on);
+      if (on) trackEvent('pincode_invalid');
+    }
+
+    // Cancel any in-flight lookup and clear its loading text
+    function cancelPincodeLookup() {
+      setPincodeError(false);
+      pincodeLookupToken++;
+      if (pincodeAbort) pincodeAbort.abort();
+      setPincodeChecking(false);
+      document.getElementById('doctorCity').placeholder = 'City / District';
+      document.getElementById('doctorState').options[0].textContent = 'Select state';
+      renderStateTrigger();
+    }
+
+    async function lookupPincode(pin) {
+      const token = ++pincodeLookupToken;
+      let notFound = false; // the API answered but doesn't know this pincode (a network failure is not "wrong")
+      setPincodeError(false);
+      const cityInput = document.getElementById('doctorCity');
+      const stateSelect = document.getElementById('doctorState');
+      cityInput.value = '';
+      cityInput.placeholder = 'Analysing...';
+      stateSelect.options[0].textContent = 'Analysing...';
+      stateSelect.value = '';
+      renderStateTrigger();
+      setPincodeChecking(true);
+      // Give up after a few seconds so a slow API can't block the form; the doctor then types manually
+      if (pincodeAbort) pincodeAbort.abort();
+      const controller = new AbortController();
+      pincodeAbort = controller;
+      const timer = setTimeout(function () { controller.abort(); }, PINCODE_TIMEOUT_MS);
+      try {
+        const res = await fetch('https://api.postalpincode.in/pincode/' + pin, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (pincodeLookupToken !== token) return; // a newer lookup has started
+        const result = Array.isArray(data) ? data[0] : null;
+        if (!result || result.Status !== 'Success' || !Array.isArray(result.PostOffice) || !result.PostOffice.length) {
+          notFound = true;
+          return;
+        }
+        const office = result.PostOffice[0];
+        if (office.District) cityInput.value = office.District;
+        if (office.State) {
+          const match = INDIA_STATES.find(function (s) { return s.toLowerCase() === office.State.toLowerCase(); });
+          if (match) {
+            document.getElementById('doctorState').value = match;
+            renderStateTrigger();
+          }
+        }
+      } catch (err) {
+        // network failure: leave fields for manual entry
+      } finally {
+        clearTimeout(timer);
+        if (pincodeLookupToken === token) {
+          setPincodeChecking(false);
+          cityInput.placeholder = 'City / District';
+          stateSelect.options[0].textContent = 'Select state';
+          renderStateTrigger();
+          if (notFound) setPincodeError(true);
+          resolvedPincode = pin;
+          // State and City show even for a wrong pincode
+          document.getElementById('formGrid').classList.add('revealed');
+        }
+        validateForm();
+      }
+    }
+
+    function isIndia() {
+      const c = phoneInput && phoneInput.getSelectedCountryData();
+      return !!c && c.iso2 === 'in';
+    }
+
+    function isPincodeValid() {
+      if (pincodeError) return false;
+      const pin = document.getElementById('doctorPincode').value.trim();
+      if (isIndia()) return /^[1-9]\d{5}$/.test(pin);
+      return /^[A-Za-z0-9][A-Za-z0-9 -]{1,8}[A-Za-z0-9]$/.test(pin);
+    }
+
+    function isContactEmailValid() {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(document.getElementById('doctorContactEmail').value.trim());
+    }
+
+    // Form validation check
+    function validateForm() {
+      const email = document.getElementById('doctorEmail').value.trim();
+      const phoneEl = document.getElementById('doctorPhone');
+      const speciality = document.getElementById('doctorSpeciality').value;
+      const otherSpeciality = document.getElementById('otherSpeciality').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
+
+      let isValid = true;
+
+      // Check Email
+      if (!email || !email.includes('@')) {
+        isValid = false;
+      }
+
+      // Check Name
+      if (!document.getElementById('doctorName').value.trim()) {
+        isValid = false;
+      }
+
+      // Check Phone (using intl-tel-input's built-in validator which handles country digit rules)
+      if (!phoneEl.value.trim() || !phoneInput.isValidNumber()) {
+        isValid = false;
+      }
+
+      // Check Contact Email
+      if (!isContactEmailValid()) {
+        isValid = false;
+      }
+
+      // Check Location
+      if (!getState() ||
+        !document.getElementById('doctorCity').value.trim() ||
+        !isPincodeValid()) {
+        isValid = false;
+      }
+
+      // Check Speciality
+      if (!speciality) {
+        isValid = false;
+      } else if (speciality === 'Other' && !otherSpeciality) {
+        isValid = false;
+      }
+
+      submitBtn.disabled = !isValid;
+
+      // Fire form_ready each time the form transitions from invalid to valid
+      if (isValid && !formState.ready) {
+        trackEvent('form_ready', { time_on_form_sec: secondsOnForm() });
+      } else if (!isValid && formState.ready) {
+        trackEvent('form_became_invalid');
+      }
+      formState.ready = isValid;
+    }
+
+    // Speciality Modal Control Functions
+    function openSpecialityModal() {
+      const backdrop = document.getElementById('specialityModalBackdrop');
+      const searchInput = document.getElementById('specialitySearchInput');
+      backdrop.classList.add('active');
+      trackEvent('speciality_modal_open');
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+      setTimeout(() => searchInput.focus(), 150);
+    }
+
+    function closeSpecialityModal() {
+      const backdrop = document.getElementById('specialityModalBackdrop');
+      backdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target.id === 'specialityModalBackdrop') {
+        trackEvent('speciality_modal_close', { method: 'backdrop' });
+        closeSpecialityModal();
+      }
+    }
+
+    // Keyboard ESC listener to close modal
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (document.getElementById('specialityModalBackdrop').classList.contains('active')) {
+          trackEvent('speciality_modal_close', { method: 'escape' });
+        }
+        closeSpecialityModal();
+      }
+    });
+
+    function selectSpeciality(val) {
+      const hiddenInput = document.getElementById('doctorSpeciality');
+      const displayText = document.getElementById('selectedSpecialityText');
+      const items = document.querySelectorAll('#specialityOptionsList li');
+
+      markStarted('doctorSpeciality');
+      formState.filled.doctorSpeciality = true;
+      trackEvent('speciality_select', { speciality: val === 'Other' ? 'Other' : val });
+      hiddenInput.value = val;
+      displayText.textContent = val === 'Other' ? 'Add your speciality' : val;
+      displayText.classList.remove('placeholder-text');
+      displayText.classList.add('selected-text');
+
+      items.forEach(li => {
+        if (li.getAttribute('data-value') === val) {
+          li.classList.add('selected');
+        } else {
+          li.classList.remove('selected');
+        }
+      });
+
+      closeSpecialityModal();
+      toggleOtherSpeciality(val);
+      validateForm();
+    }
+
+    function filterSpecialities(query) {
+      const filter = query.trim().toLowerCase();
+      const items = document.querySelectorAll('#specialityOptionsList li:not(.add-option)');
+      let exactMatch = false;
+
+      items.forEach(li => {
+        const text = li.textContent.toLowerCase();
+        if (text.includes(filter)) {
+          li.style.display = 'flex';
+        } else {
+          li.style.display = 'none';
+        }
+        if (li.getAttribute('data-value') !== 'Other' && text.trim() === filter) exactMatch = true;
+      });
+
+      // Typing something new surfaces a "+ Add '<text>'" row
+      const list = document.getElementById('specialityOptionsList');
+      let addRow = document.getElementById('specialityAddRow');
+      // Icons stop cycling (static magnifier) while there is text in the box
+      document.querySelector('#specialityModalBackdrop .modal-search-box').classList.toggle('typing', !!filter);
+      if (!filter || exactMatch) {
+        if (addRow) addRow.remove();
+        return;
+      }
+      if (!addRow) {
+        addRow = document.createElement('li');
+        addRow.id = 'specialityAddRow';
+        addRow.className = 'add-option';
+        addRow.innerHTML = '<i class="fa-solid fa-plus"></i><span></span>';
+        addRow.addEventListener('click', addCustomSpeciality);
+        list.appendChild(addRow);
+      }
+      addRow.querySelector('span').textContent = 'Add "' + query.trim() + '"';
+    }
+
+    // Add the typed speciality as a custom entry (stored through the "Other" flow)
+    function addCustomSpeciality() {
+      const searchInput = document.getElementById('specialitySearchInput');
+      const typed = searchInput.value.trim().replace(/\s+/g, ' ');
+      if (!typed) return;
+      selectSpeciality('Other');
+      const otherInput = document.getElementById('otherSpeciality');
+      otherInput.value = typed;
+      document.getElementById('selectedSpecialityText').textContent = typed;
+      document.getElementById('otherSpecialityGroup').style.display = 'none'; // value already captured
+      trackEvent('speciality_add_custom', { search_term_length: typed.length });
+      searchInput.value = '';
+      filterSpecialities('');
+      validateForm();
+    }
+
+    // Enter on the search box adds the typed text when nothing matches
+    document.getElementById('specialitySearchInput').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (document.getElementById('specialityAddRow')) addCustomSpeciality();
+    });
+
+    // Toggle Other Speciality input field
+    function toggleOtherSpeciality(value) {
+      const otherGroup = document.getElementById('otherSpecialityGroup');
+      const otherInput = document.getElementById('otherSpeciality');
+      if (value === 'Other') {
+        otherGroup.style.display = 'block';
+        otherInput.required = true;
+        otherInput.focus();
+      } else {
+        otherGroup.style.display = 'none';
+        otherInput.required = false;
+        otherInput.value = '';
+      }
+    }
+
+    // Handle Form Submission
+    function handleFormSubmit(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('doctorEmail').value;
+      const fullName = 'Dr. ' + document.getElementById('doctorName').value.trim();
+      const fullPhone = phoneInput.getNumber();
+      let speciality = document.getElementById('doctorSpeciality').value;
+
+      if (!speciality) {
+        trackEvent('form_submit_error', { reason: 'speciality_missing' });
+        openSpecialityModal();
+        return;
+      }
+
+      const isCustomSpeciality = speciality === 'Other';
+      if (isCustomSpeciality) {
+        speciality = document.getElementById('otherSpeciality').value;
+        if (!speciality.trim()) {
+          trackEvent('form_submit_error', { reason: 'other_speciality_missing' });
+          return;
+        }
+      }
+      if (!document.getElementById('doctorName').value.trim()) {
+        trackEvent('form_submit_error', { reason: 'name_missing' });
+        return;
+      }
+      if (!phoneInput.isValidNumber()) {
+        trackEvent('form_submit_error', { reason: 'phone_invalid' });
+        return;
+      }
+      if (!isContactEmailValid()) {
+        trackEvent('form_submit_error', { reason: 'contact_email_invalid' });
+        return;
+      }
+      const contactEmail = document.getElementById('doctorContactEmail').value.trim();
+      const state = getState();
+      const city = document.getElementById('doctorCity').value.trim();
+      const pincode = document.getElementById('doctorPincode').value.trim();
+      if (!state || !city || !isPincodeValid()) {
+        trackEvent('form_submit_error', { reason: 'location_invalid' });
+        return;
+      }
+      formState.submitted = true;
+
+      console.log("Form Submitted:", { email, contactEmail, fullName, fullPhone, state, city, pincode, speciality });
+
+      // Conversion event (recommended GA4 name for lead forms) — no PII
+      trackEvent('generate_lead', {
+        speciality: isCustomSpeciality ? 'Other' : speciality,
+        country: (phoneInput.getSelectedCountryData() || {}).iso2
+      });
+      trackEvent('form_submit_success', { custom_speciality: isCustomSpeciality, time_to_submit_sec: secondsOnForm() });
+
+      // Hide form and show success screen
+      document.getElementById('formContent').style.display = 'none';
+      document.getElementById('successContent').style.display = 'block';
+    }
+
+  </script>
+</body>
+
+</html>
