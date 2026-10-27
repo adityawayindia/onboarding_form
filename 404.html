@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DigiDr - Page Not Found</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      color: #1E293B;
+      min-height: 100vh;
+      background-color: #FFFFFF;
+    }
+
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* Aurora background (same as interest / onboarding forms) */
+    .hero-aurora {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      background: linear-gradient(115deg,
+          rgba(3, 96, 217, 0.2) 0%,
+          rgba(237, 147, 12, 0.2) 35%,
+          rgba(3, 96, 217, 0.2) 70%,
+          rgba(237, 147, 12, 0.2) 100%);
+      background-size: 320% 320%;
+      animation: hero-aurora-gradient 12s ease-in-out infinite;
+    }
+
+    .hero-aurora__mesh {
+      position: absolute;
+      inset: -35%;
+      transform: translateZ(0);
+      animation: hero-aurora-mesh 15s ease-in-out infinite;
+    }
+
+    .hero-aurora__blob {
+      position: absolute;
+      display: block;
+    }
+
+    .hero-aurora__blob-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      filter: blur(88px);
+      transform: translateZ(0);
+    }
+
+    .hero-aurora__blob--blue {
+      width: min(95vw, 720px);
+      height: min(95vw, 720px);
+      top: -28%;
+      left: -22%;
+      animation: hero-aurora-blue 15s ease-in-out infinite;
+    }
+
+    .hero-aurora__blob--blue .hero-aurora__blob-inner {
+      background: radial-gradient(circle,
+          rgba(3, 96, 217, 0.35) 0%,
+          rgba(3, 96, 217, 0.15) 40%,
+          rgba(3, 96, 217, 0) 72%);
+    }
+
+    .hero-aurora__blob--orange {
+      width: min(90vw, 680px);
+      height: min(90vw, 680px);
+      bottom: -28%;
+      right: -22%;
+      animation: hero-aurora-orange 18s ease-in-out infinite;
+      animation-delay: -4.5s;
+    }
+
+    .hero-aurora__blob--orange .hero-aurora__blob-inner {
+      background: radial-gradient(circle,
+          rgba(237, 147, 12, 0.32) 0%,
+          rgba(237, 147, 12, 0.14) 40%,
+          rgba(237, 147, 12, 0) 72%);
+    }
+
+    @keyframes hero-aurora-gradient {
+
+      0%,
+      100% {
+        background-position: 0% 40%;
+      }
+
+      33% {
+        background-position: 50% 60%;
+      }
+
+      66% {
+        background-position: 100% 30%;
+      }
+    }
+
+    @keyframes hero-aurora-mesh {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+      }
+
+      50% {
+        transform: translate3d(6%, 4%, 0) rotate(4deg) scale(1.06);
+      }
+    }
+
+    @keyframes hero-aurora-blue {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate3d(18vw, 10vh, 0) scale(1.12);
+      }
+
+      66% {
+        transform: translate3d(8vw, 20vh, 0) scale(0.94);
+      }
+    }
+
+    @keyframes hero-aurora-orange {
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate3d(-16vw, -8vh, 0) scale(1.1);
+      }
+
+      66% {
+        transform: translate3d(-22vw, 6vh, 0) scale(0.92);
+      }
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 580px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header-logo-container {
+      text-align: center;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo-img {
+      width: 220px;
+      max-width: 80vw;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .logo-img:hover {
+      transform: scale(1.02);
+    }
+
+    .tagline-badge {
+      margin-top: 14px;
+      background: rgba(238, 244, 250, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid #CFE3F7;
+      border-radius: 20px;
+      padding: 8px 20px;
+      box-shadow: 0 4px 15px rgba(3, 96, 217, 0.1);
+    }
+
+    .tagline-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0C3B5E;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-align: center;
+      display: block;
+    }
+
+    .form-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 24px;
+      padding: 40px 36px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25),
+        0 1px 3px rgba(255, 255, 255, 0.3) inset;
+      animation: cardFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: center;
+    }
+
+    @keyframes cardFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .error-code {
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -2px;
+      color: #0E65D7;
+      margin-bottom: 16px;
+    }
+
+    .form-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0C3B5E;
+      margin-bottom: 8px;
+    }
+
+    .form-subtitle {
+      font-size: 16px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 30px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #0E65D7;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(14, 101, 215, 0.35);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .submit-btn:hover {
+      background: #0C58BE;
+      box-shadow: 0 12px 25px rgba(14, 101, 215, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 480px) {
+      .form-card {
+        padding: 32px 22px;
+      }
+
+      .error-code {
+        font-size: 76px;
+      }
+
+      .form-title {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <section class="hero-section">
+    <div class="hero-aurora" aria-hidden="true">
+      <div class="hero-aurora__mesh">
+        <div class="hero-aurora__blob hero-aurora__blob--blue">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+        <div class="hero-aurora__blob hero-aurora__blob--orange">
+          <div class="hero-aurora__blob-inner"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <div class="header-logo-container">
+        <a href="https://digidr.app" target="_blank" title="DigiDr Homepage">
+          <img src="https://storage.googleapis.com/digidr/logo.png" alt="DigiDr Logo" class="logo-img">
+        </a>
+        <div class="tagline-badge">
+          <span class="tagline-text">AI Digital Infrastructure for Doctors</span>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="error-code">404</div>
+        <h1 class="form-title">Page Not Found</h1>
+        <p class="form-subtitle">The page you're looking for doesn't exist or may have been moved.</p>
+        <a href="https://digidr.app" class="submit-btn"><i class="fa-solid fa-house"></i> Go to DigiDr Home</a>
+      </div>
+
+    </div>
+  </section>
+
+</body>
+
+</html>
