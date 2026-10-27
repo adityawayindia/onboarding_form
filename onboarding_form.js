@@ -527,7 +527,7 @@ const FELLOWSHIPS = {
   delete FELLOWSHIPS.europe;
 
   FELLOWSHIPS.other = [];   // countries not listed: the doctor adds their own
-})();
+})()
 
 function fellowshipOptionsFor(countryKey, specialty) {
   const expand = tokens => tokens.split(' ').flatMap(t =>
@@ -1077,6 +1077,9 @@ function applySingleSelect(fieldId, value, options) {
     .find(opt => String(opt.value) === String(value));
   const label = match ? (match.triggerLabel || match.label) : value;
 
+  // Remember the placeholder so clearSingleSelect can restore it
+  if (textEl.classList.contains('placeholder-text')) textEl.dataset.placeholder = textEl.textContent;
+
   hiddenInput.value = value;
   textEl.textContent = label;
   textEl.classList.remove('placeholder-text');
@@ -1091,6 +1094,20 @@ function applySingleSelect(fieldId, value, options) {
     updateStateCouncil(value, options && options.keepDependent);
   }
 
+}
+
+function clearSingleSelect(fieldId) {
+  const textEl = document.getElementById(fieldId + 'Text');
+  document.getElementById(fieldId).value = '';
+  textEl.textContent = textEl.dataset.placeholder || '';
+  textEl.classList.remove('selected-text');
+  textEl.classList.add('placeholder-text');
+  markFieldInteracted(fieldId);
+
+  if (fieldId === 'registrationYear') updateYearsExperience('');
+  if (fieldId === 'medicalSpecialty') refreshFellowshipOptions();
+  if (fieldId.startsWith('fellowshipCountry-')) refreshFellowshipOptions(locationIndexOf(fieldId));
+  if (fieldId === 'registrationCouncil') updateStateCouncil('');
 }
 
 /* =========================================================
@@ -1640,12 +1657,20 @@ function openDropdownModal(fieldId) {
   resetSearchBarMode();
 
   renderModalChips();
-  renderModalOptions(config, '');
+  // Nothing to search yet: open straight into typing a new entry
+  // (a one-pick field that already holds an entry keeps its list row, so it can be removed)
+  const hasSavedPick = config.maxSelections === 1 && MULTI_SELECTIONS[fieldId].length > 0;
+  if (config.allowCustom && config.options.length === 0 && !hasSavedPick) {
+    enterEmptyAddMode(config);
+  } else {
+    renderModalOptions(config, '');
+  }
   updateModalCloseButton();
 
   document.getElementById(fieldId + 'Trigger').classList.add('open');
   backdrop.classList.add('active');
   document.body.style.overflow = 'hidden';
+  syncModalToKeyboard();
   setTimeout(() => searchInput.focus(), 150);
 }
 
@@ -1686,6 +1711,44 @@ function updateModalCloseButton() {
   btn.setAttribute('aria-label', showDone ? 'Done' : 'Close');
 }
 
+/* On phones the on-screen keyboard shrinks the visual viewport but not the
+   fixed backdrop, so a centred card ends up half hidden behind the keyboard.
+   While the keyboard is up, pin the backdrop to the visible area and dock
+   the card to the top so the search box and list stay in view. */
+let fullViewportHeight = window.innerHeight;
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+function syncModalToKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const backdrop = document.getElementById('selectModalBackdrop');
+  if (!backdrop) return;
+
+  // Some Android browsers shrink window.innerHeight along with the keyboard,
+  // so measure against the tallest height seen instead of the current one
+  fullViewportHeight = Math.max(fullViewportHeight, window.innerHeight);
+  // Undo pinch-zoom so zooming in is not mistaken for a keyboard
+  const visibleHeight = vv.height * vv.scale;
+  const active = document.activeElement;
+  const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+  const keyboardOpen = isTouchDevice && typing && fullViewportHeight - visibleHeight > 120;
+  backdrop.classList.toggle('keyboard-open', keyboardOpen);
+  backdrop.style.setProperty('--vv-top', vv.offsetTop + 'px');
+  backdrop.style.setProperty('--vv-height', vv.height + 'px');
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', syncModalToKeyboard);
+  window.visualViewport.addEventListener('scroll', syncModalToKeyboard);
+  // Rotating the phone changes the full height, so measure it again
+  window.addEventListener('orientationchange', () => {
+    fullViewportHeight = 0;
+    setTimeout(syncModalToKeyboard, 300);
+  });
+  document.addEventListener('focusin', syncModalToKeyboard);
+  document.addEventListener('focusout', () => setTimeout(syncModalToKeyboard, 50));
+}
+
 function handleModalBackdropClick(e) {
   if (e.target.id === 'selectModalBackdrop') closeDropdownModal();
 }
@@ -1693,9 +1756,20 @@ function handleModalBackdropClick(e) {
 /* -------------------------------------------------------
    Search box: comma-splitting + Enter-to-add
    ------------------------------------------------------- */
+/* Search/plus icons cycle only when the field accepts custom entries and the box is empty */
+function syncSearchIconCycle() {
+  const config = DROPDOWN_CONFIG[currentDropdownField];
+  const box = document.getElementById('modalSearchBox');
+  const input = document.getElementById('modalSearchInput');
+  if (!box || !input) return;
+  box.classList.toggle('static', !config || !config.allowCustom);
+  box.classList.toggle('typing', !!input.value);
+}
+
 function handleModalSearchInput(inputEl) {
   const config = DROPDOWN_CONFIG[currentDropdownField];
   if (!config) return;
+  syncSearchIconCycle();
   if (searchBarInAddMode) {
     updateSearchSaveButton(!!inputEl.value.trim());
     return;
@@ -2048,7 +2122,30 @@ function resetSearchBarMode() {
   const searchBox = document.getElementById('modalSearchBox');
   if (searchBox) searchBox.classList.remove('add-mode');
 
+  const emptyHint = document.getElementById('modalEmptyHint');
+  if (emptyHint) emptyHint.hidden = true;
+
   updateSearchSaveButton(false);
+}
+
+/* Empty list: the search bar becomes a plain "type your entry" field */
+function enterEmptyAddMode(config) {
+  searchBarInAddMode = true;
+
+  // "Add your fellowship" -> "Add Your Fellowship", matching the "Select …" titles
+  const addText = config.addPlaceholder || 'Add your own';
+  document.getElementById('modalTitleText').textContent =
+    addText.replace(/\b\w/g, c => c.toUpperCase());
+
+  const searchInput = document.getElementById('modalSearchInput');
+  searchInput.placeholder = (config.addPlaceholder || 'Add your own').replace(/^Add /, 'Type ');
+  document.getElementById('modalSearchIcon').className = 'fa-solid fa-pen search-icon';
+  document.getElementById('modalSearchBox').classList.add('add-mode');
+
+  const list = document.getElementById('modalOptionsList');
+  list.innerHTML = '';
+  list.hidden = true;
+  document.getElementById('modalEmptyHint').hidden = false;
 }
 
 /* Switches the search bar between "search the list" and "type a new entry" */
@@ -2078,6 +2175,7 @@ function toggleSearchAddMode() {
     toggleIcon.className = 'fa-solid fa-xmark';
     toggleLabel.textContent = 'Cancel';
     list.hidden = true;
+    list.innerHTML = '';
     searchBox.classList.add('add-mode');
     searchInput.select();
   } else {
@@ -2098,6 +2196,7 @@ function toggleSearchAddMode() {
    Options list rendering
    ------------------------------------------------------- */
 function renderModalOptions(config, filterText) {
+  syncSearchIconCycle();
   const list = document.getElementById('modalOptionsList');
   const isMulti = !!config.multi;
   const selected = isMulti ? MULTI_SELECTIONS[currentDropdownField] : null;
@@ -2256,7 +2355,12 @@ function renderModalOptions(config, filterText) {
    Single-select commit
    ------------------------------------------------------- */
 function selectDropdownOption(value, label) {
-  applySingleSelect(currentDropdownField, value, { focusOther: true });
+  // Clicking the option that's already chosen deselects it
+  if (String(document.getElementById(currentDropdownField).value) === String(value)) {
+    clearSingleSelect(currentDropdownField);
+  } else {
+    applySingleSelect(currentDropdownField, value, { focusOther: true });
+  }
   closeDropdownModal();
 }
 

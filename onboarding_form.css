@@ -798,6 +798,19 @@ body {
   transform: scale(1) translateY(0);
 }
 
+/* On-screen keyboard open: fill only the visible area, card docked to the top */
+.select-modal-backdrop.keyboard-open {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vv-height, 100%);
+  align-items: flex-start;
+  padding: 12px;
+}
+
+.select-modal-backdrop.keyboard-open .select-modal-card {
+  max-height: 100%;
+}
+
 .modal-header {
   padding: 18px 24px;
   background: #F8FAFC;
@@ -952,6 +965,19 @@ body {
   display: none;
 }
 
+/* Helper line under the search bar when a field has nothing listed yet */
+.modal-empty-hint {
+  margin: 0;
+  padding: 14px 24px 22px;
+  font-size: 14px;
+  color: #64748B;
+  text-align: center;
+}
+
+.modal-empty-hint[hidden] {
+  display: none;
+}
+
 .modal-search-box input {
   width: 100%;
   padding: 10px 14px 10px 38px;
@@ -1024,6 +1050,33 @@ body {
   transform: translateY(-50%);
   color: #64748B;
   font-size: 16px;
+  transition: opacity 0.25s ease, transform 0.25s ease, color 0.25s ease;
+}
+
+/* Search and plus icons share a spot and cross-fade on a loop while the box is empty */
+.search-icon.add-icon {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-search-box:not(.typing):not(.static):not(.add-mode) .search-icon:not(.add-icon) {
+  animation: iconSearchCycle 4s ease-in-out infinite;
+}
+
+.modal-search-box:not(.typing):not(.static):not(.add-mode) .search-icon.add-icon {
+  animation: iconAddCycle 4s ease-in-out infinite;
+}
+
+@keyframes iconSearchCycle {
+  0%, 40% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+  50%, 90% { opacity: 0; transform: translateY(-50%) rotate(90deg) scale(0.6); }
+  100% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+}
+
+@keyframes iconAddCycle {
+  0%, 40% { opacity: 0; transform: translateY(-50%) rotate(-90deg) scale(0.6); }
+  50%, 90% { opacity: 1; transform: translateY(-50%) rotate(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-50%) rotate(-90deg) scale(0.6); }
 }
 
 /* ---------------------------------------------------------
@@ -1160,6 +1213,10 @@ body {
   .legal-modal-footer {
     padding: 14px 18px;
   }
+}
+
+.modal-options-list[hidden] {
+  display: none;
 }
 
 .modal-options-list {

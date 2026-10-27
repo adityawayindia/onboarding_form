@@ -434,6 +434,7 @@
       <div class="modal-search-row" id="modalSearchRow">
         <div class="modal-search-box" id="modalSearchBox">
           <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
+          <i class="fa-solid fa-plus search-icon add-icon" id="modalAddIcon"></i>
           <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
             oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
           <button type="button" class="search-save-btn" id="searchSaveBtn"
@@ -442,6 +443,11 @@
           </button>
         </div>
       </div>
+
+      <!-- Shown instead of the list when a field has nothing listed yet -->
+      <p class="modal-empty-hint" id="modalEmptyHint" hidden>
+        Nothing listed here yet. Type yours and press Enter or tap Save.
+      </p>
 
       <!-- Selected Chips (multi-select only) -->
       <div class="modal-chips-row" id="modalChipsRow"></div>
