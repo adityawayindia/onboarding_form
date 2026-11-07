@@ -15,6 +15,7 @@ body {
   font-size: 16px;
   color: #1E293B;
   min-height: 100vh;
+  min-height: calc(var(--vvh, 1dvh) * 100);
   background-color: #FFFFFF;
 }
 
@@ -29,6 +30,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: calc(var(--vvh, 1dvh) * 100);
   padding: 32px 20px;
 }
 
@@ -761,7 +763,10 @@ body {
    --------------------------------------------------------- */
 .select-modal-backdrop {
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: calc(var(--vvh, 1dvh) * 100);
   background: rgba(12, 28, 46, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -784,6 +789,7 @@ body {
   width: 100%;
   max-width: 480px;
   max-height: 85vh;
+  max-height: calc(var(--vvh, 1dvh) * 85);
   display: flex;
   flex-direction: column;
   background: #FFFFFF;
@@ -1005,6 +1011,66 @@ body {
   padding-right: 84px;
 }
 
+/* Add box with the list hidden: give the card some breathing room below it */
+.modal-search-row:has(.modal-search-box.other-mode) {
+  padding-bottom: 24px;
+}
+
+/* "Other" add box: a back arrow replaces the search/pen icons */
+.search-back-btn {
+  display: none;
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #0C3B5E;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.search-back-btn:hover,
+.search-back-btn:focus-visible {
+  background: #DCEBFD;
+  outline: none;
+}
+
+.modal-search-box.other-mode .search-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-search-box.other-mode .search-icon {
+  display: none;
+}
+
+.modal-options-list li.other-option {
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #0E65D7;
+  font-weight: 600;
+  border-top: 1px solid #E2E8F0;
+}
+
+.modal-options-list li.other-option .other-hint {
+  color: inherit;
+  font-weight: inherit;
+  font-size: inherit;
+}
+
+.modal-options-list li.other-option:focus-visible {
+  outline: 2px solid #0E65D7;
+  outline-offset: -2px;
+}
+
 .search-save-btn {
   position: absolute;
   right: 6px;
@@ -1084,7 +1150,10 @@ body {
    --------------------------------------------------------- */
 .legal-modal-backdrop {
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: calc(var(--vvh, 1dvh) * 100);
   background: rgba(12, 28, 46, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -1107,6 +1176,7 @@ body {
   width: 100%;
   max-width: 640px;
   max-height: 85vh;
+  max-height: calc(var(--vvh, 1dvh) * 85);
   display: flex;
   flex-direction: column;
   background: #FFFFFF;
@@ -1202,6 +1272,7 @@ body {
   .legal-modal-card {
     max-width: 100%;
     max-height: 85vh;
+  max-height: calc(var(--vvh, 1dvh) * 85);
     border-radius: 20px;
   }
 
@@ -1943,7 +2014,10 @@ body {
 
 .photo-modal {
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: calc(var(--vvh, 1dvh) * 100);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -2004,6 +2078,7 @@ body {
   display: block;
   max-width: 100%;
   max-height: 60vh;
+  max-height: calc(var(--vvh, 1dvh) * 60);
   margin: 12px auto 18px;
   border-radius: 12px;
   object-fit: contain;
@@ -2533,6 +2608,7 @@ body {
   .select-modal-card {
     max-width: 100%;
     max-height: 82vh;
+  max-height: calc(var(--vvh, 1dvh) * 82);
     border-radius: 20px;
   }
 
@@ -2558,6 +2634,7 @@ body {
 
   .modal-options-list {
     max-height: 55vh;
+  max-height: calc(var(--vvh, 1dvh) * 55);
   }
 
   .modal-options-list li {

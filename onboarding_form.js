@@ -1793,6 +1793,14 @@ function handleSearchSaveClick() {
 }
 
 function handleModalSearchKeydown(e) {
+  // Escape in the "Other" add box goes back to the list instead of closing the modal
+  if (e.key === 'Escape' && searchBarInAddMode
+      && document.getElementById('modalSearchBox').classList.contains('other-mode')) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSearchAddMode();
+    return;
+  }
   if (e.key !== 'Enter') return;
   e.preventDefault();
 
@@ -2109,18 +2117,11 @@ function resetSearchBarMode() {
   const icon = document.getElementById('modalSearchIcon');
   if (icon) icon.className = 'fa-solid fa-magnifying-glass search-icon';
 
-  const toggleBtn = document.getElementById('modalAddToggleBtn');
-  const toggleIcon = document.getElementById('modalAddToggleIcon');
-  const toggleLabel = document.getElementById('modalAddToggleLabel');
-  if (toggleBtn) toggleBtn.classList.remove('active');
-  if (toggleIcon) toggleIcon.className = 'fa-solid fa-plus';
-  if (toggleLabel) toggleLabel.textContent = 'Add';
-
   const list = document.getElementById('modalOptionsList');
   if (list) list.hidden = false;
 
   const searchBox = document.getElementById('modalSearchBox');
-  if (searchBox) searchBox.classList.remove('add-mode');
+  if (searchBox) searchBox.classList.remove('add-mode', 'other-mode');
 
   const emptyHint = document.getElementById('modalEmptyHint');
   if (emptyHint) emptyHint.hidden = true;
@@ -2148,18 +2149,15 @@ function enterEmptyAddMode(config) {
   document.getElementById('modalEmptyHint').hidden = false;
 }
 
-/* Switches the search bar between "search the list" and "type a new entry" */
+/* "Other" row: the search bar becomes an add box; the back arrow returns to the list */
 function toggleSearchAddMode() {
   const config = DROPDOWN_CONFIG[currentDropdownField];
-  if (!config) return;
+  if (!config || !config.allowCustom) return;
 
   searchBarInAddMode = !searchBarInAddMode;
 
   const searchInput = document.getElementById('modalSearchInput');
   const icon = document.getElementById('modalSearchIcon');
-  const toggleBtn = document.getElementById('modalAddToggleBtn');
-  const toggleIcon = document.getElementById('modalAddToggleIcon');
-  const toggleLabel = document.getElementById('modalAddToggleLabel');
   const list = document.getElementById('modalOptionsList');
   const searchBox = document.getElementById('modalSearchBox');
 
@@ -2169,26 +2167,20 @@ function toggleSearchAddMode() {
   updateSearchSaveButton(!!carriedText);
 
   if (searchBarInAddMode) {
-    searchInput.placeholder = config.addPlaceholder || 'Type to add';
+    searchInput.placeholder = (config.addPlaceholder || 'Add your own').replace(/^Add /, 'Type ');
     icon.className = 'fa-solid fa-pen search-icon';
-    toggleBtn.classList.add('active');
-    toggleIcon.className = 'fa-solid fa-xmark';
-    toggleLabel.textContent = 'Cancel';
     list.hidden = true;
     list.innerHTML = '';
-    searchBox.classList.add('add-mode');
-    searchInput.select();
+    searchBox.classList.add('add-mode', 'other-mode');
   } else {
     searchInput.placeholder = config.placeholder || 'Search...';
     icon.className = 'fa-solid fa-magnifying-glass search-icon';
-    toggleBtn.classList.remove('active');
-    toggleIcon.className = 'fa-solid fa-plus';
-    toggleLabel.textContent = 'Add';
     list.hidden = false;
-    searchBox.classList.remove('add-mode');
+    searchBox.classList.remove('add-mode', 'other-mode');
     renderModalOptions(config, '');
   }
 
+  syncSearchIconCycle();
   searchInput.focus();
 }
 
@@ -2254,6 +2246,7 @@ function renderModalOptions(config, filterText) {
     li.className = 'no-results';
     li.textContent = 'No matches';
     list.appendChild(li);
+    appendOtherOption(list, config);
     return;
   }
 
@@ -2349,6 +2342,28 @@ function renderModalOptions(config, filterText) {
     });
     list.appendChild(li);
   }
+
+  appendOtherOption(list, config);
+}
+
+/* Last row of every custom-entry list: switches the search bar into an add box */
+function appendOtherOption(list, config) {
+  if (!config.allowCustom) return;
+  // Typing already offers "+ Add …", so Other only shows on an empty search
+  if (document.getElementById('modalSearchInput').value.trim()) return;
+  const li = document.createElement('li');
+  li.className = 'other-option';
+  li.setAttribute('role', 'button');
+  li.tabIndex = 0;
+  li.textContent = 'Can’t find yours? Add it here';
+  li.addEventListener('click', toggleSearchAddMode);
+  li.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleSearchAddMode();
+    }
+  });
+  list.appendChild(li);
 }
 
 /* -------------------------------------------------------
@@ -2394,7 +2409,7 @@ function getFieldError(id) {
       break;
 
     case 'firstName':
-      if (!value) return 'First name is required.';
+      if (!value) return 'Full name is required.';
       if (!/^[A-Za-z][A-Za-z\s'-]*$/.test(value) || value.length < 2) return 'Name should contain letters only.';
       break;
 

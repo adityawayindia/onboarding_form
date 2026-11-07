@@ -2,8 +2,28 @@
 <html lang="en">
 
 <head>
+  <script>
+    /* Keeps --vvh (1% of the visible height) and --vv-top in sync with the visual
+       viewport, so the page and every modal shrink when the on-screen keyboard opens */
+    (function () {
+      var root = document.documentElement;
+      function syncViewport() {
+        var vv = window.visualViewport;
+        var h = vv ? vv.height : window.innerHeight;
+        root.style.setProperty('--vvh', (h / 100) + 'px');
+        root.style.setProperty('--vv-top', (vv ? vv.offsetTop : 0) + 'px');
+      }
+      syncViewport();
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncViewport);
+        window.visualViewport.addEventListener('scroll', syncViewport);
+      }
+      window.addEventListener('resize', syncViewport);
+      window.addEventListener('orientationchange', function () { setTimeout(syncViewport, 300); });
+    })();
+  </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>DigiDr - Onboarding Form</title>
   <!-- Google Fonts & FontAwesome / Intl-Tel-Input -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,10 +111,10 @@
 
                 <div class="form-group">
                   <div class="input-wrapper">
-                    <input type="text" id="firstName" class="form-input has-icon" placeholder="First Name">
+                    <input type="text" id="firstName" class="form-input has-icon" placeholder="Full Name">
                     <i class="fa-solid fa-user field-icon"></i>
                   </div>
-                  <span class="field-error-msg">First name is required.</span>
+                  <span class="field-error-msg">Full name is required.</span>
                 </div>
 
                 <div class="form-group">
@@ -435,6 +455,10 @@
         <div class="modal-search-box" id="modalSearchBox">
           <i class="fa-solid fa-magnifying-glass search-icon" id="modalSearchIcon"></i>
           <i class="fa-solid fa-plus search-icon add-icon" id="modalAddIcon"></i>
+          <button type="button" class="search-back-btn" id="searchBackBtn"
+            title="Back to list" aria-label="Back to list" onclick="toggleSearchAddMode()">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
           <input type="text" id="modalSearchInput" placeholder="Search..." autocomplete="off"
             oninput="handleModalSearchInput(this)" onkeydown="handleModalSearchKeydown(event)">
           <button type="button" class="search-save-btn" id="searchSaveBtn"
