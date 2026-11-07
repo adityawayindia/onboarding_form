@@ -624,6 +624,20 @@
       transform: scale(1) translateY(0);
     }
 
+    /* On-screen keyboard open: fill only the visible area, card docked to the top */
+    .speciality-modal-backdrop.keyboard-open {
+      top: var(--vv-top, 0px);
+      bottom: auto;
+      height: var(--vv-height, 100%);
+      align-items: flex-start;
+      padding: 12px;
+    }
+
+    .speciality-modal-backdrop.keyboard-open .speciality-modal-card {
+      max-height: 100%;
+      border-radius: 20px;
+    }
+
     /* Modal Header */
     .modal-header {
       padding: 18px 24px;
@@ -871,6 +885,104 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /* "Can't find yours? Add it here" row at the end of the list */
+    .speciality-options-list li.other-option {
+      justify-content: flex-start;
+      color: #0E65D7;
+      font-weight: 600;
+      border-top: 1px solid #E2E8F0;
+    }
+
+    .speciality-options-list li.other-option:focus-visible {
+      outline: 2px solid #0E65D7;
+      outline-offset: -2px;
+    }
+
+    /* Add box: a back arrow replaces the search/plus icons, list hidden */
+    .search-back-btn {
+      display: none;
+      position: absolute;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #0C3B5E;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .search-back-btn:hover,
+    .search-back-btn:focus-visible {
+      background: #DCEBFD;
+      outline: none;
+    }
+
+    .modal-search-box.add-mode .search-back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-search-box.add-mode .search-icon {
+      display: none;
+    }
+
+    .modal-search-box.add-mode {
+      padding-bottom: 24px;
+      border-bottom: none;
+    }
+
+    .modal-search-box.add-mode input {
+      padding-right: 84px;
+    }
+
+    .search-save-btn {
+      position: absolute;
+      right: 26px;
+      top: 50%;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 12px;
+      border: none;
+      border-radius: 8px;
+      background: #0E65D7;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      transform: translateY(-50%) scale(0.6);
+      transform-origin: right center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease, background 0.2s ease;
+    }
+
+    .modal-search-box.add-mode .search-save-btn {
+      top: calc(50% - 5px);
+    }
+
+    .search-save-btn.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(-50%) scale(1);
+    }
+
+    .search-save-btn:hover {
+      background: #0C58BE;
     }
 
     /* Other Specialty Conditional Input */
@@ -1384,11 +1496,19 @@
       </div>
 
       <!-- Modal Search Bar -->
-      <div class="modal-search-box">
+      <div class="modal-search-box" id="specialitySearchBox">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
         <i class="fa-solid fa-plus search-icon add-icon"></i>
+        <button type="button" class="search-back-btn" title="Back to list" aria-label="Back to list"
+          onclick="toggleSpecialityAddMode(false)">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <input type="text" id="specialitySearchInput" placeholder="Search or add medical speciality..."
-          oninput="filterSpecialities(this.value)">
+          autocomplete="off" oninput="handleSpecialitySearchInput(this.value)">
+        <button type="button" class="search-save-btn" id="specialitySaveBtn" tabindex="-1" aria-hidden="true"
+          onclick="addCustomSpeciality()">
+          <i class="fa-solid fa-check"></i> Save
+        </button>
       </div>
 
       <!-- Options List -->
@@ -1965,6 +2085,7 @@
       const backdrop = document.getElementById('specialityModalBackdrop');
       backdrop.classList.remove('active');
       document.body.style.overflow = '';
+      if (specialityAddMode) toggleSpecialityAddMode(false);
     }
 
     function handleBackdropClick(e) {
@@ -2012,7 +2133,7 @@
 
     function filterSpecialities(query) {
       const filter = query.trim().toLowerCase();
-      const items = document.querySelectorAll('#specialityOptionsList li:not(.add-option)');
+      const items = document.querySelectorAll('#specialityOptionsList li:not(.add-option):not(.other-option)');
       let exactMatch = false;
 
       items.forEach(li => {
@@ -2032,6 +2153,7 @@
       document.querySelector('#specialityModalBackdrop .modal-search-box').classList.toggle('typing', !!filter);
       if (!filter || exactMatch) {
         if (addRow) addRow.remove();
+        syncSpecialityOtherOption();
         return;
       }
       if (!addRow) {
@@ -2043,6 +2165,70 @@
         list.appendChild(addRow);
       }
       addRow.querySelector('span').textContent = 'Add "' + query.trim() + '"';
+      syncSpecialityOtherOption();
+    }
+
+    // "Can't find yours? Add it here" row: last in the list, only on an empty search
+    // (typing already offers "+ Add …")
+    function syncSpecialityOtherOption() {
+      const list = document.getElementById('specialityOptionsList');
+      let row = document.getElementById('specialityOtherOption');
+      const empty = !document.getElementById('specialitySearchInput').value.trim();
+      if (!empty) {
+        if (row) row.remove();
+        return;
+      }
+      if (!row) {
+        row = document.createElement('li');
+        row.id = 'specialityOtherOption';
+        row.className = 'other-option';
+        row.setAttribute('role', 'button');
+        row.tabIndex = 0;
+        row.textContent = 'Can’t find yours? Add it here';
+        row.addEventListener('click', () => toggleSpecialityAddMode(true));
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleSpecialityAddMode(true);
+          }
+        });
+      }
+      list.appendChild(row); // keep it last
+    }
+
+    let specialityAddMode = false;
+
+    // Switch the search bar into a plain "type your speciality" box (and back)
+    function toggleSpecialityAddMode(on) {
+      specialityAddMode = on;
+      const searchBox = document.getElementById('specialitySearchBox');
+      const searchInput = document.getElementById('specialitySearchInput');
+      const list = document.getElementById('specialityOptionsList');
+      searchBox.classList.toggle('add-mode', on);
+      list.hidden = on;
+      searchInput.placeholder = on ? 'Type your speciality' : 'Search or add medical speciality...';
+      if (on) trackEvent('speciality_other_open');
+      if (!on) {
+        searchInput.value = '';
+        filterSpecialities('');
+      }
+      updateSpecialitySaveButton(on && !!searchInput.value.trim());
+      if (document.getElementById('specialityModalBackdrop').classList.contains('active')) searchInput.focus();
+    }
+
+    function updateSpecialitySaveButton(show) {
+      const btn = document.getElementById('specialitySaveBtn');
+      btn.classList.toggle('visible', show);
+      btn.tabIndex = show ? 0 : -1;
+      btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    function handleSpecialitySearchInput(value) {
+      if (specialityAddMode) {
+        updateSpecialitySaveButton(!!value.trim());
+        return;
+      }
+      filterSpecialities(value);
     }
 
     // Add the typed speciality as a custom entry (stored through the "Other" flow)
@@ -2055,9 +2241,11 @@
       otherInput.value = typed;
       document.getElementById('selectedSpecialityText').textContent = typed;
       document.getElementById('otherSpecialityGroup').style.display = 'none'; // value already captured
-      trackEvent('speciality_add_custom', { search_term_length: typed.length });
+      trackEvent('speciality_add_custom', { search_term_length: typed.length, via_other: specialityAddMode });
+      if (specialityAddMode) toggleSpecialityAddMode(false);
       searchInput.value = '';
       filterSpecialities('');
+      updateSpecialitySaveButton(false);
       validateForm();
     }
 
@@ -2065,8 +2253,19 @@
     document.getElementById('specialitySearchInput').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      if (document.getElementById('specialityAddRow')) addCustomSpeciality();
+      if (specialityAddMode || document.getElementById('specialityAddRow')) addCustomSpeciality();
     });
+
+    // Escape in the add box goes back to the list instead of closing the modal
+    document.getElementById('specialitySearchInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && specialityAddMode) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSpecialityAddMode(false);
+      }
+    });
+
+    syncSpecialityOtherOption();
 
     // Toggle Other Speciality input field
     function toggleOtherSpeciality(value) {
@@ -2140,6 +2339,45 @@
       // Hide form and show success screen
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('successContent').style.display = 'block';
+    }
+
+    /* On phones the on-screen keyboard shrinks the visual viewport but not the
+       fixed backdrop, so the card ends up half hidden behind the keyboard.
+       While the keyboard is up, pin the backdrop to the visible area and dock
+       the card to the top so the search box and list stay in view. */
+    let fullViewportHeight = window.innerHeight;
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+    function syncModalToKeyboard() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // Some Android browsers shrink window.innerHeight along with the keyboard,
+      // so measure against the tallest height seen instead of the current one
+      fullViewportHeight = Math.max(fullViewportHeight, window.innerHeight);
+      // Undo pinch-zoom so zooming in is not mistaken for a keyboard
+      const visibleHeight = vv.height * vv.scale;
+      const active = document.activeElement;
+      const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+      const keyboardOpen = isTouchDevice && typing && fullViewportHeight - visibleHeight > 120;
+      ['specialityModalBackdrop', 'stateModalBackdrop'].forEach(id => {
+        const backdrop = document.getElementById(id);
+        if (!backdrop) return;
+        backdrop.classList.toggle('keyboard-open', keyboardOpen);
+        backdrop.style.setProperty('--vv-top', vv.offsetTop + 'px');
+        backdrop.style.setProperty('--vv-height', vv.height + 'px');
+      });
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncModalToKeyboard);
+      window.visualViewport.addEventListener('scroll', syncModalToKeyboard);
+      // Rotating the phone changes the full height, so measure it again
+      window.addEventListener('orientationchange', () => {
+        fullViewportHeight = 0;
+        setTimeout(syncModalToKeyboard, 300);
+      });
+      document.addEventListener('focusin', syncModalToKeyboard);
+      document.addEventListener('focusout', () => setTimeout(syncModalToKeyboard, 50));
     }
 
   </script>
